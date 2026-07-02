@@ -1,0 +1,53 @@
+---
+description: Explore repository structure and implementation before making non-trivial changes
+alwaysApply: true
+---
+
+# Repository Onboarding (Required Before Serious Work)
+
+When starting work on this repo — especially in a **new agent session** or before **non-trivial changes** — explore the codebase first. Do not guess architecture or invent patterns that conflict with existing code.
+
+## Step 1 — Read project docs (in order)
+
+1. [`docs/SRS.md`](../docs/SRS.md) — requirements, `.ectl/` model, command behavior
+2. [`docs/IMPLEMENTATION_PLAN.md`](../docs/IMPLEMENTATION_PLAN.md) — phases, module layout, current scope
+3. Root `README.md` (if present) — install and usage
+
+## Step 2 — Map the repository
+
+Inspect actual structure before editing:
+
+- `src/cli/` — Commander commands and global flags
+- `src/config/`, `src/state/` — project-local `.ectl/` handling
+- `src/aws/` — EC2 / SDK v3 integration
+- `src/ssh/`, `src/transfer/`, `src/process/` — remote execution
+- `src/orchestration/` — multi-step flows (e.g. `deploy`)
+- `src/types/` — shared types and error codes
+- `.cursor/rules/` — project conventions (commit workflow, TS, AWS SDK)
+
+Use search/tools to find: entry point (`src/index.ts`), how commands wire to services, and where state is read/written.
+
+## Step 3 — Align with current phase
+
+- Check which IMPLEMENTATION_PLAN phase the repo reflects (scaffold vs services vs commands).
+- Implement only what that phase and SRS specify; do not skip ahead or add out-of-scope features (SRS §13.2).
+
+## Step 4 — Match existing patterns
+
+Before adding code:
+
+- Follow naming, folder layout, and error-handling patterns already in the repo.
+- Reuse `ConfigManager`, `StateStore`, and service facades — do not duplicate logic in command files.
+- Respect `.cursor/rules/typescript-standards.mdc` and `aws-sdk-v3.mdc`.
+
+## When to re-run onboarding
+
+Re-explore when:
+
+- User asks for a large feature, refactor, or cross-cutting change
+- You are unsure which module owns a behavior
+- The repo layout has changed since your last read in this session
+
+## Brief summary for the user
+
+After onboarding, state in 2–4 sentences: current repo maturity, relevant modules for the task, and which SRS / plan section you are implementing — then proceed.

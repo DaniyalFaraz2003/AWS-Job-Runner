@@ -1,0 +1,31 @@
+---
+description: Commit only after user review; pause at each completed functionality unit
+alwaysApply: true
+---
+
+# Commit Workflow
+
+## Never commit proactively
+
+- Do **not** run `git commit` unless the user explicitly asks you to commit.
+- After completing a **functionality unit** (see IMPLEMENTATION_PLAN.md phase deliverable or sub-deliverable), **stop and ask the user to review**.
+- Present a short summary: files changed, behavior added, how to verify manually.
+- Wait for explicit approval such as "commit this", "looks good, commit", or "go ahead and commit".
+
+## What counts as a functionality unit
+
+- One phase sub-deliverable (e.g. "ConfigManager + zod schemas")
+- One CLI command wired end-to-end
+- One core module with its tests/docs
+
+## When the user approves a commit
+
+1. Run `git status`, `git diff`, and `git log -1` in parallel.
+2. Stage only relevant files (never `.env`, credentials, or `.pem` keys).
+3. Write a concise commit message focused on **why**, matching repo style.
+4. Commit, then run `git status` to confirm success.
+5. Do **not** push unless the user explicitly requests it.
+
+## If commit hooks fail
+
+Fix the issue and create a **new** commit. Do not amend unless all amend rules from user settings are satisfied.

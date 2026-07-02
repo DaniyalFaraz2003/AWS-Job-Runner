@@ -1,0 +1,41 @@
+---
+description: AWS SDK for JavaScript v3 patterns for EC2 integration
+globs: "**/aws/**/*.ts,**/services/*provision*.ts,**/services/*ec2*.ts"
+alwaysApply: false
+---
+
+# AWS SDK v3 (ectl)
+
+Reference: project skill `aws-sdk-js-v3-usage`.
+
+## Client usage
+
+- Import from package root: `import { EC2Client, RunInstancesCommand } from "@aws-sdk/client-ec2"`.
+- Use **bare-bones** style: `client.send(new RunInstancesCommand(input))` — not aggregated v2-style clients.
+- Set `region` explicitly from `.ectl/config.json` (also honor `AWS_REGION` / profile via default chain).
+- Create **one `EC2Client` per command invocation**; reuse within that command's service layer.
+- Do **not** read or mutate `client.config` after construction.
+
+## Credentials
+
+- Rely on default provider chain (`AWS_ACCESS_KEY_ID`, `~/.aws/credentials`, `AWS_PROFILE`, SSO).
+- Do not store AWS secrets in `.ectl/`.
+
+## Waiters and pagination
+
+- Use `waitUntilInstanceStatusOk` and `waitUntilInstanceTerminated` with `{ client, maxWaitTime }`.
+- Use `paginateDescribeImages` for AMI lookup — no manual NextToken loops.
+
+## Errors
+
+- Catch SDK errors via `e.$metadata` / `e.name` (e.g. `EC2ServiceException`).
+- Map to `EctlError` with actionable messages and SRS error codes (`AWS_CREDENTIALS_INVALID`, etc.).
+
+## Performance
+
+- Set `maxAttempts` on client config for transient failures.
+- Parallelize only when safe; EC2 launch/teardown flows stay sequential.
+
+## Required EC2 operations (v1)
+
+`CreateKeyPair`, `ImportKeyPair`, `CreateSecurityGroup`, `AuthorizeSecurityGroupIngress`, `DeleteSecurityGroup`, `DescribeImages`, `RunInstances`, `TerminateInstances`, `DescribeInstances`, `CreateTags`, `DescribeRegions`.

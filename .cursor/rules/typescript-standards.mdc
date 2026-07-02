@@ -1,0 +1,51 @@
+---
+description: TypeScript design patterns and maintainability standards for ectl
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# TypeScript Standards (ectl)
+
+## Architecture
+
+- **Thin commands, fat services**: Commander handlers parse flags, call services, format output. No AWS/SSH logic in command files.
+- **Dependency injection**: Pass `ConfigManager`, `StateStore`, clients into services; avoid hidden singletons except CLI bootstrap.
+- **Single responsibility**: One module per SRS component (see `docs/SRS.md` §3.2).
+- **Result types over thrown strings**: Use typed errors (`EctlError` with `code`) mapped to exit codes and `--json` envelopes.
+
+## TypeScript practices
+
+- Enable `strict` mode; no `any` without a one-line justification comment.
+- Prefer `interface` for object shapes, `type` for unions/intersections.
+- Use `readonly` for immutable config/state snapshots after load.
+- Validate external JSON with **zod** at system boundaries (`.ectl/config.json`, `state.json`).
+- Use `async/await`; avoid floating promises in CLI entrypoints.
+- Export types from `src/types/`; keep barrel exports minimal.
+
+## Patterns to use
+
+```typescript
+// Service factory — one EC2Client per command lifecycle
+export function createEc2Provisioner(config: EctlConfig, deps: { client?: EC2Client } = {}) {
+  const client = deps.client ?? new EC2Client({ region: config.region });
+  return new AwsProvisioner(client, config);
+}
+
+// Command handler shape
+export async function runInit(opts: InitOptions, ctx: CliContext): Promise<InitResult> {
+  // parse -> service -> format (human or JSON)
+}
+```
+
+## Code quality
+
+- Match existing naming and folder layout before introducing new abstractions.
+- Comments only for non-obvious business rules (e.g. single-active-task constraint).
+- Prefer small pure functions for ignore parsing, slug generation, tag building.
+- File names: `kebab-case.ts`; classes: `PascalCase`; functions/vars: `camelCase`.
+
+## Avoid
+
+- Over-abstracted one-liner helpers and premature plugin systems.
+- Catching errors without rethrowing or mapping to `EctlError`.
+- Mixing chalk/ora output inside service layers (keep UX in `src/cli/output/`).
