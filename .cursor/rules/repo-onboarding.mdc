@@ -23,7 +23,7 @@ Inspect actual structure before editing:
 - `src/ssh/`, `src/transfer/`, `src/process/` — remote execution
 - `src/orchestration/` — multi-step flows (e.g. `deploy`)
 - `src/types/` — shared types and error codes
-- `.cursor/rules/` — project conventions (commit workflow, TS, AWS SDK)
+- `.cursor/rules/` — project conventions (git workflow, TS, AWS SDK)
 
 Use search/tools to find: entry point (`src/index.ts`), how commands wire to services, and where state is read/written.
 
@@ -38,7 +38,7 @@ Before adding code:
 
 - Follow naming, folder layout, and error-handling patterns already in the repo.
 - Reuse `ConfigManager`, `StateStore`, and service facades — do not duplicate logic in command files.
-- Respect `.cursor/rules/typescript-standards.mdc` and `aws-sdk-v3.mdc`.
+- Respect `.cursor/rules/git-workflow.mdc`, `typescript-standards.mdc`, and `aws-sdk-v3.mdc`.
 
 ## When to re-run onboarding
 
