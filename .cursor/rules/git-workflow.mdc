@@ -1,0 +1,115 @@
+---
+description: Review-first GitHub workflow — branch, commit, push, PR; user merges to main
+alwaysApply: true
+---
+
+# Git & GitHub Workflow
+
+## Never skip review
+
+- Do **not** create branches, commit, push, or open pull requests unless the user has **reviewed the changes** and given **explicit confirmation** (e.g. "looks good", "confirmed", "go ahead with the PR workflow").
+- After completing a **functionality unit**, stop and ask the user to review and verify.
+
+### What counts as a functionality unit
+
+- One IMPLEMENTATION_PLAN phase sub-deliverable (e.g. "ConfigManager + zod schemas")
+- One CLI command wired end-to-end
+- One core module with its tests/docs
+- One focused rule/docs change (e.g. this workflow update)
+
+### Review handoff (required before any git write)
+
+Present:
+
+1. **Summary** — what changed and why
+2. **Files touched** — key paths only
+3. **How to verify** — commands or manual steps
+4. **Ask** — "Please review and confirm when ready for the PR workflow."
+
+Wait for explicit approval. Do not assume silence is consent.
+
+---
+
+## After user confirms — run this sequence
+
+Execute in order. Use `gh` CLI or GitHub MCP (`create_pull_request`) as available.
+
+### 1. Sync with default branch
+
+```powershell
+git fetch origin
+git checkout main
+git pull origin main
+```
+
+If local default branch is still `master`, use `master` until renamed, or rename to `main` once remote exists.
+
+### 2. Create a feature branch
+
+```powershell
+git checkout -b <type>/<short-description>
+```
+
+Branch naming:
+
+| Prefix | Use |
+|--------|-----|
+| `feat/` | New feature or command |
+| `chore/` | Tooling, rules, scaffold |
+| `fix/` | Bug fix |
+| `docs/` | Documentation only |
+
+Examples: `feat/phase-0-scaffold`, `chore/git-workflow-rule`, `feat/ectl-init`
+
+### 3. Stage and commit
+
+1. Run `git status`, `git diff`, and `git log -1` in parallel.
+2. Stage only relevant files — **never** `.env`, credentials, or `*.pem` keys.
+3. Commit with a concise message focused on **why** (1–2 sentences).
+
+### 4. Push branch to remote
+
+```powershell
+git push -u origin HEAD
+```
+
+If no remote is configured, ask the user for the GitHub repo URL or create the repository first, then add `origin`.
+
+### 5. Open a pull request
+
+- **Base:** `main`
+- **Head:** the feature branch
+- **Title:** clear, imperative (e.g. `feat: add ectl init command`)
+- **Body** must include:
+  - **Summary** — 1–3 bullets of what and why
+  - **Changes** — notable files/modules
+  - **Test plan** — checklist of verification steps the user can follow
+  - **SRS / plan trace** — phase or requirement IDs when applicable
+
+Return the **PR URL** to the user.
+
+### 6. Stop — user merges manually
+
+- Do **not** merge the PR unless the user explicitly asks.
+- Do **not** force-push to `main` / `master`.
+- After merge, the user may ask you to sync local `main` — do not do that proactively.
+
+---
+
+## Safety rules
+
+- **Never** update git config.
+- **Never** use destructive git commands (`push --force`, `reset --hard`) unless the user explicitly requests them.
+- **Never** skip pre-commit hooks (`--no-verify`) unless the user explicitly requests it.
+- If a commit hook fails: fix the issue and create a **new** commit — do not amend unless user amend rules are fully satisfied.
+- One functionality unit → one branch → one PR (avoid mixing unrelated changes).
+
+---
+
+## Remote repository
+
+This project uses a dedicated GitHub repository. Before the first push, ensure:
+
+- `origin` points to the correct GitHub repo
+- Default branch on GitHub is `main`
+- Local work is pushed via feature branches only — not directly to `main`
