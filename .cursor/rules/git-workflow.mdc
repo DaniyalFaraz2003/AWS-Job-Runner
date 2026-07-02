@@ -12,10 +12,10 @@ alwaysApply: true
 
 ### What counts as a functionality unit
 
-- One IMPLEMENTATION_PLAN phase sub-deliverable (e.g. "ConfigManager + zod schemas")
+- One phase GitHub issue (e.g. issue #2 Phase 0 scaffold)
 - One CLI command wired end-to-end
 - One core module with its tests/docs
-- One focused rule/docs change (e.g. this workflow update)
+- One focused rule/docs change
 
 ### Review handoff (required before any git write)
 
