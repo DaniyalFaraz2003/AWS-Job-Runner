@@ -32,3 +32,7 @@ export const taskStateSchema = z.object({
 });
 
 export type TaskState = z.infer<typeof taskStateSchema>;
+
+export function isActiveTaskStatus(status: TaskStatus): boolean {
+  return (ACTIVE_TASK_STATUSES as readonly string[]).includes(status);
+}

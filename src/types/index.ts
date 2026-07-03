@@ -12,6 +12,7 @@ export {
 } from "./config.js";
 export {
   ACTIVE_TASK_STATUSES,
+  isActiveTaskStatus,
   taskStateSchema,
   taskStatusSchema,
   type TaskState,
