@@ -45,3 +45,19 @@ export function getConfigPath(projectRoot: string): string {
 export function getEctlignorePath(projectRoot: string): string {
   return join(projectRoot, ".ectlignore");
 }
+
+export function getTasksDir(projectRoot: string): string {
+  return join(getEctlDir(projectRoot), "tasks");
+}
+
+export function getTaskDir(projectRoot: string, taskName: string): string {
+  return join(getTasksDir(projectRoot), taskName);
+}
+
+export function getStatePath(projectRoot: string, taskName: string): string {
+  return join(getTaskDir(projectRoot, taskName), "state.json");
+}
+
+export function getRunPath(projectRoot: string, taskName: string): string {
+  return join(getTaskDir(projectRoot, taskName), "run.json");
+}
