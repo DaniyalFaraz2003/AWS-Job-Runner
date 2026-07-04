@@ -16,12 +16,28 @@ export function parseNodeMajorVersion(nodeVersion: string): string {
   return major;
 }
 
-/** Returns exit 0 when curl, unzip, node (matching major), npm, and pm2 are present. */
-export function buildBootstrapCheckCommand(nodeMajor: string): string {
-  const major = shellQuote(nodeMajor);
+/** Returns exit 0 when curl and unzip are present (base tier for push). */
+export function buildBasePackagesCheckCommand(): string {
   return [
     "command -v curl >/dev/null 2>&1",
     "command -v unzip >/dev/null 2>&1",
+  ].join(" && ");
+}
+
+/** Install apt packages required before archive upload/extract (FR-PUSH-3). */
+export function buildBasePackagesInstallCommand(): string {
+  return [
+    "set -e",
+    "export DEBIAN_FRONTEND=noninteractive",
+    "sudo apt-get update -qq",
+    "sudo apt-get install -y -qq curl unzip ca-certificates",
+  ].join(" && ");
+}
+
+/** Returns exit 0 when node (matching major), npm, and pm2 are present. */
+export function buildRuntimeCheckCommand(nodeMajor: string): string {
+  const major = shellQuote(nodeMajor);
+  return [
     "command -v node >/dev/null 2>&1",
     "command -v npm >/dev/null 2>&1",
     "command -v pm2 >/dev/null 2>&1",
@@ -29,18 +45,32 @@ export function buildBootstrapCheckCommand(nodeMajor: string): string {
   ].join(" && ");
 }
 
-/** Install apt packages, Node via NodeSource, and global pm2 (FR-RUN-2). */
-export function buildBootstrapInstallCommand(nodeMajor: string): string {
+/** Install Node via NodeSource and global pm2 (runtime tier for run). */
+export function buildRuntimeInstallCommand(nodeMajor: string): string {
   const major = parseNodeMajorVersion(nodeMajor);
 
   return [
     "set -e",
     "export DEBIAN_FRONTEND=noninteractive",
-    "sudo apt-get update -qq",
-    "sudo apt-get install -y -qq curl unzip ca-certificates gnupg",
     `curl -fsSL https://deb.nodesource.com/setup_${major}.x | sudo -E bash -`,
     "sudo apt-get install -y -qq nodejs",
     "sudo npm install -g pm2",
+  ].join(" && ");
+}
+
+/** Returns exit 0 when base + runtime tools are present. */
+export function buildBootstrapCheckCommand(nodeMajor: string): string {
+  return [
+    buildBasePackagesCheckCommand(),
+    buildRuntimeCheckCommand(nodeMajor),
+  ].join(" && ");
+}
+
+/** One-shot install of base + runtime packages (legacy helper). */
+export function buildBootstrapInstallCommand(nodeMajor: string): string {
+  return [
+    buildBasePackagesInstallCommand(),
+    buildRuntimeInstallCommand(nodeMajor),
   ].join(" && ");
 }
 
@@ -55,18 +85,39 @@ export class BootstrapScript {
     this.ssh = deps.ssh;
   }
 
-  /** Idempotent remote bootstrap — skips install when node+pm2 already match (FR-RUN-2). */
-  async ensureReady(nodeVersion: string): Promise<void> {
-    const major = parseNodeMajorVersion(nodeVersion);
-    const check = await this.ssh.execCommand(buildBootstrapCheckCommand(major));
+  /** Idempotent base bootstrap — curl + unzip for transfer operations. */
+  async ensureBasePackages(): Promise<void> {
+    const check = await this.ssh.execCommand(buildBasePackagesCheckCommand());
 
     if (check.code === 0) {
       return;
     }
 
-    const install = await this.ssh.execCommand(
-      buildBootstrapInstallCommand(major),
-    );
+    const install = await this.ssh.execCommand(buildBasePackagesInstallCommand());
+
+    if (install.code !== 0) {
+      const detail = install.stderr.trim() || install.stdout.trim();
+      throw new EctlError(
+        ECTL_ERROR_CODES.SSH_CONNECTION_FAILED,
+        detail.length > 0
+          ? `Remote base package install failed: ${detail}. Try \`ectl ssh\` to debug.`
+          : "Remote base package install failed. Try `ectl ssh` to debug.",
+      );
+    }
+  }
+
+  /** Idempotent runtime bootstrap — Node/npm/pm2 after base packages (FR-RUN-2). */
+  async ensureReady(nodeVersion: string): Promise<void> {
+    await this.ensureBasePackages();
+
+    const major = parseNodeMajorVersion(nodeVersion);
+    const check = await this.ssh.execCommand(buildRuntimeCheckCommand(major));
+
+    if (check.code === 0) {
+      return;
+    }
+
+    const install = await this.ssh.execCommand(buildRuntimeInstallCommand(major));
 
     if (install.code !== 0) {
       const detail = install.stderr.trim() || install.stdout.trim();

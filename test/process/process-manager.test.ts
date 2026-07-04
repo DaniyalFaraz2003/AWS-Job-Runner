@@ -131,27 +131,11 @@ describe("pm2 command builders", () => {
 });
 
 describe("BootstrapScript", () => {
-  it("skips install when bootstrap check succeeds", async () => {
+  it("skips install when base and runtime checks succeed", async () => {
     const client = new RecordingSshClient(
       new Map([
         ["command -v curl", { stdout: "", stderr: "", code: 0, signal: null }],
-      ]),
-    );
-    const ssh = new SshManager({ createClient: () => client });
-    await ssh.connect("203.0.113.10", "/tmp/key.pem", "ubuntu");
-
-    const bootstrap = new BootstrapScript({ ssh });
-    await bootstrap.ensureReady("22");
-
-    expect(client.commands).toHaveLength(1);
-    expect(client.commands[0]).toContain("command -v pm2");
-  });
-
-  it("runs install when bootstrap check fails", async () => {
-    const client = new RecordingSshClient(
-      new Map([
-        ["command -v curl", { stdout: "", stderr: "", code: 1, signal: null }],
-        ["deb.nodesource.com", { stdout: "", stderr: "", code: 0, signal: null }],
+        ["command -v node", { stdout: "", stderr: "", code: 0, signal: null }],
       ]),
     );
     const ssh = new SshManager({ createClient: () => client });
@@ -161,7 +145,48 @@ describe("BootstrapScript", () => {
     await bootstrap.ensureReady("22");
 
     expect(client.commands).toHaveLength(2);
-    expect(client.commands[1]).toContain("deb.nodesource.com/setup_22.x");
+    expect(client.commands[0]).toContain("command -v unzip");
+    expect(client.commands[1]).toContain("command -v pm2");
+  });
+
+  it("installs runtime tier when runtime check fails after base tier succeeds", async () => {
+    const client = new RecordingSshClient(
+      new Map([
+        ["command -v curl", { stdout: "", stderr: "", code: 0, signal: null }],
+        ["command -v node", { stdout: "", stderr: "", code: 1, signal: null }],
+        ["deb.nodesource.com", { stdout: "", stderr: "", code: 0, signal: null }],
+      ]),
+    );
+    const ssh = new SshManager({ createClient: () => client });
+    await ssh.connect("203.0.113.10", "/tmp/key.pem", "ubuntu");
+
+    const bootstrap = new BootstrapScript({ ssh });
+    await bootstrap.ensureReady("22");
+
+    expect(client.commands).toHaveLength(3);
+    expect(client.commands[2]).toContain("deb.nodesource.com/setup_22.x");
+  });
+
+  it("installs base packages when curl or unzip is missing", async () => {
+    const client = new RecordingSshClient(
+      new Map([
+        ["command -v curl", { stdout: "", stderr: "", code: 1, signal: null }],
+        ["sudo apt-get install -y -qq curl unzip", {
+          stdout: "",
+          stderr: "",
+          code: 0,
+          signal: null,
+        }],
+      ]),
+    );
+    const ssh = new SshManager({ createClient: () => client });
+    await ssh.connect("203.0.113.10", "/tmp/key.pem", "ubuntu");
+
+    const bootstrap = new BootstrapScript({ ssh });
+    await bootstrap.ensureBasePackages();
+
+    expect(client.commands).toHaveLength(2);
+    expect(client.commands[1]).toContain("sudo apt-get install -y -qq curl unzip");
   });
 });
 

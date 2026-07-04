@@ -1,7 +1,11 @@
 export {
   BootstrapScript,
+  buildBasePackagesCheckCommand,
+  buildBasePackagesInstallCommand,
   buildBootstrapCheckCommand,
   buildBootstrapInstallCommand,
+  buildRuntimeCheckCommand,
+  buildRuntimeInstallCommand,
   createBootstrapScript,
   parseNodeMajorVersion,
   type BootstrapScriptDeps,
