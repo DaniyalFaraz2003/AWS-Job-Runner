@@ -3,6 +3,8 @@ import {
   createNodeSshClient,
   type ExecCommandOptions,
   type ExecCommandResult,
+  type GetFileOptions,
+  type PutFileOptions,
   type SshClient,
 } from "./node-ssh-client.js";
 import {
@@ -95,6 +97,45 @@ export class SshManager {
       return await client.execCommand(command, options);
     } catch (error) {
       throw wrapSshOperationError(error, "Remote command failed");
+    }
+  }
+
+  async putFile(
+    localPath: string,
+    remotePath: string,
+    options: PutFileOptions = {},
+  ): Promise<void> {
+    const client = this.requireConnectedClient();
+    try {
+      await client.putFile(localPath, remotePath, options);
+    } catch (error) {
+      throw wrapSshOperationError(error, "File upload failed");
+    }
+  }
+
+  async getFile(
+    remotePath: string,
+    localPath: string,
+    options: GetFileOptions = {},
+  ): Promise<void> {
+    const client = this.requireConnectedClient();
+    try {
+      await client.getFile(remotePath, localPath, options);
+    } catch (error) {
+      throw wrapSshOperationError(error, "File download failed");
+    }
+  }
+
+  async getDirectory(
+    remotePath: string,
+    localPath: string,
+    options: GetFileOptions = {},
+  ): Promise<void> {
+    const client = this.requireConnectedClient();
+    try {
+      await client.getDirectory(remotePath, localPath, options);
+    } catch (error) {
+      throw wrapSshOperationError(error, "Directory download failed");
     }
   }
 

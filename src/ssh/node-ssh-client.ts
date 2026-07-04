@@ -2,6 +2,10 @@ import { NodeSSH } from "node-ssh";
 
 type ShellChannel = Parameters<Parameters<NodeSSH["withShell"]>[0]>[0];
 
+type SftpTransferOptions = {
+  step?: TransferProgressCallback;
+};
+
 export interface ExecCommandResult {
   readonly stdout: string;
   readonly stderr: string;
@@ -20,6 +24,18 @@ export interface ExecCommandOptions {
   readonly cwd?: string;
 }
 
+export interface TransferProgressCallback {
+  (transferred: number, chunk: number, total: number): void;
+}
+
+export interface PutFileOptions {
+  readonly onProgress?: TransferProgressCallback;
+}
+
+export interface GetFileOptions {
+  readonly onProgress?: TransferProgressCallback;
+}
+
 /** Injectable SSH client boundary for tests and SshManager. */
 export interface SshClient {
   connect(config: SshConnectConfig): Promise<void>;
@@ -28,6 +44,21 @@ export interface SshClient {
     command: string,
     options?: ExecCommandOptions,
   ): Promise<ExecCommandResult>;
+  putFile(
+    localPath: string,
+    remotePath: string,
+    options?: PutFileOptions,
+  ): Promise<void>;
+  getFile(
+    remotePath: string,
+    localPath: string,
+    options?: GetFileOptions,
+  ): Promise<void>;
+  getDirectory(
+    remotePath: string,
+    localPath: string,
+    options?: GetFileOptions,
+  ): Promise<void>;
   openShell(): Promise<void>;
   dispose(): void;
 }
@@ -71,6 +102,43 @@ export class NodeSshClient implements SshClient {
     };
   }
 
+  async putFile(
+    localPath: string,
+    remotePath: string,
+    options: PutFileOptions = {},
+  ): Promise<void> {
+    await this.ssh.putFile(
+      localPath,
+      remotePath,
+      null,
+      toTransferOptions(options.onProgress),
+    );
+  }
+
+  async getFile(
+    remotePath: string,
+    localPath: string,
+    options: GetFileOptions = {},
+  ): Promise<void> {
+    await this.ssh.getFile(
+      localPath,
+      remotePath,
+      null,
+      toTransferOptions(options.onProgress),
+    );
+  }
+
+  async getDirectory(
+    remotePath: string,
+    localPath: string,
+    options: GetFileOptions = {},
+  ): Promise<void> {
+    const transferOptions = toTransferOptions(options.onProgress);
+    await this.ssh.getDirectory(localPath, remotePath, {
+      ...(transferOptions !== null ? { transferOptions } : {}),
+    });
+  }
+
   async openShell(): Promise<void> {
     await this.ssh.withShell(
       (channel) => attachInteractiveShell(channel),
@@ -89,6 +157,16 @@ export class NodeSshClient implements SshClient {
 
 export function createNodeSshClient(): SshClient {
   return new NodeSshClient();
+}
+
+function toTransferOptions(
+  onProgress?: TransferProgressCallback,
+): SftpTransferOptions | null {
+  if (onProgress === undefined) {
+    return null;
+  }
+
+  return { step: onProgress };
 }
 
 async function attachInteractiveShell(channel: ShellChannel): Promise<void> {
