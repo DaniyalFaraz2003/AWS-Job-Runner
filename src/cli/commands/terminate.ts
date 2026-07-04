@@ -4,17 +4,16 @@ import chalk from "chalk";
 import type { CliContext } from "../context.js";
 import { logVerbose } from "../context.js";
 import {
-  createTaskTerminator,
   type TerminateProgress,
   type TerminateTaskResult,
 } from "../../orchestration/task-terminator.js";
 import {
   createSuccessEnvelope,
-  envelopeFromError,
   printJson,
 } from "../output/envelope.js";
+import { handleCommandError } from "../output/command-error.js";
+import { createTerminatorForContext } from "../service-deps.js";
 import { StepProgressReporter } from "../output/step-progress.js";
-import { isEctlError } from "../../types/errors.js";
 
 export interface TerminateCommandOptions {
   readonly name?: string;
@@ -104,7 +103,7 @@ export async function runTerminateCommand(
     }
   }
 
-  const terminator = createTaskTerminator();
+  const terminator = createTerminatorForContext(ctx);
   const reporter = ctx.json ? null : new StepProgressReporter();
 
   if (reporter !== null) {
@@ -150,15 +149,7 @@ export function registerTerminateCommand(
       try {
         await runTerminateCommand(local, ctx);
       } catch (error) {
-        if (ctx.json) {
-          printJson(envelopeFromError("terminate", error));
-        } else if (isEctlError(error)) {
-          console.error(chalk.red(error.message));
-        } else {
-          const message = error instanceof Error ? error.message : String(error);
-          console.error(chalk.red(message));
-        }
-        process.exit(1);
+        handleCommandError(ctx, "terminate", error);
       }
     });
 }

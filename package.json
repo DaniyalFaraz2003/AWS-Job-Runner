@@ -1,13 +1,15 @@
 {
   "name": "ectl",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Project-local CLI to run long-lived tasks on AWS EC2",
   "type": "module",
   "bin": {
     "ectl": "./dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=22"
@@ -23,10 +25,19 @@
     "aws",
     "ec2",
     "cli",
-    "ectl"
+    "ectl",
+    "ec2-task-launcher"
   ],
-  "license": "UNLICENSED",
-  "private": true,
+  "author": "Daniyal Faraz",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DaniyalFaraz2003/AWS-Job-Runner.git"
+  },
+  "homepage": "https://github.com/DaniyalFaraz2003/AWS-Job-Runner#readme",
+  "bugs": {
+    "url": "https://github.com/DaniyalFaraz2003/AWS-Job-Runner/issues"
+  },
   "dependencies": {
     "@aws-sdk/client-ec2": "^3.989.0",
     "@aws-sdk/client-ssm": "^3.1079.0",

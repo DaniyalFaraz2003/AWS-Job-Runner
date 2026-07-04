@@ -6,17 +6,16 @@ import { formatAmiChoiceLabel } from "../../aws/ami-resolver.js";
 import type { CliContext } from "../context.js";
 import { logVerbose } from "../context.js";
 import {
-  createProjectInitializer,
   DEFAULT_INSTANCE_TYPES,
   type InitPrompts,
   type InitResult,
 } from "../../config/project-initializer.js";
 import {
   createSuccessEnvelope,
-  envelopeFromError,
   printJson,
 } from "../output/envelope.js";
-import { isEctlError } from "../../types/errors.js";
+import { handleCommandError } from "../output/command-error.js";
+import { createInitializerForContext } from "../service-deps.js";
 
 export interface InitCommandOptions {
   readonly region?: string;
@@ -130,7 +129,7 @@ export async function runInitCommand(
 
   logVerbose(ctx, `Initializing project at ${projectRoot}`);
 
-  const initializer = createProjectInitializer();
+  const initializer = createInitializerForContext(ctx);
   const prompts = createInitPrompts(ctx, { skipForceConfirm, skipAmiPrompt });
 
   const result = await initializer.initialize(
@@ -179,15 +178,7 @@ export function registerInitCommand(
       try {
         await runInitCommand(local, ctx);
       } catch (error) {
-        if (ctx.json) {
-          printJson(envelopeFromError("init", error));
-        } else if (isEctlError(error)) {
-          console.error(chalk.red(error.message));
-        } else {
-          const message = error instanceof Error ? error.message : String(error);
-          console.error(chalk.red(message));
-        }
-        process.exit(1);
+        handleCommandError(ctx, "init", error);
       }
     });
 }

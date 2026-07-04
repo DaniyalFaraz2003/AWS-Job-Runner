@@ -3,10 +3,7 @@ import chalk from "chalk";
 import type { CliContext } from "../context.js";
 import { logVerbose } from "../context.js";
 import { createTaskSshSession } from "../../orchestration/task-ssh.js";
-import {
-  envelopeFromError,
-  printJson,
-} from "../output/envelope.js";
+import { handleCommandError } from "../output/command-error.js";
 import { isEctlError, ECTL_ERROR_CODES, EctlError } from "../../types/errors.js";
 
 export interface SshCommandOptions {
@@ -75,15 +72,7 @@ export function registerSshCommand(
       try {
         await runSshCommand(local, ctx);
       } catch (error) {
-        if (ctx.json) {
-          printJson(envelopeFromError("ssh", error));
-        } else if (isEctlError(error)) {
-          console.error(chalk.red(error.message));
-        } else {
-          const message = error instanceof Error ? error.message : String(error);
-          console.error(chalk.red(message));
-        }
-        process.exit(1);
+        handleCommandError(ctx, "ssh", error);
       }
     });
 }

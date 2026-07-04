@@ -18,3 +18,15 @@ export function logVerbose(ctx: CliContext, message: string): void {
     console.error(`[verbose] ${message}`);
   }
 }
+
+export function awsProvisionerDeps(
+  ctx: CliContext,
+): { onVerbose: (message: string) => void } | Record<string, never> {
+  if (!ctx.verbose) {
+    return {};
+  }
+
+  return {
+    onVerbose: (message: string) => logVerbose(ctx, message),
+  };
+}

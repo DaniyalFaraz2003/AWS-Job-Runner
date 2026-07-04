@@ -9,10 +9,9 @@ import {
 } from "../../orchestration/task-stopper.js";
 import {
   createSuccessEnvelope,
-  envelopeFromError,
   printJson,
 } from "../output/envelope.js";
-import { isEctlError } from "../../types/errors.js";
+import { handleCommandError } from "../output/command-error.js";
 
 export interface StopCommandOptions {
   readonly name?: string;
@@ -131,15 +130,7 @@ export function registerStopCommand(
       try {
         await runStopCommand(local, ctx);
       } catch (error) {
-        if (ctx.json) {
-          printJson(envelopeFromError("stop", error));
-        } else if (isEctlError(error)) {
-          console.error(chalk.red(error.message));
-        } else {
-          const message = error instanceof Error ? error.message : String(error);
-          console.error(chalk.red(message));
-        }
-        process.exit(1);
+        handleCommandError(ctx, "stop", error);
       }
     });
 }

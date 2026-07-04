@@ -1,3 +1,4 @@
+import { formatErrorMessage } from "../../types/error-hints.js";
 import {
   ECTL_ERROR_CODES,
   EctlError,
@@ -46,11 +47,11 @@ export function envelopeFromError(
   command: string,
   error: unknown,
 ): JsonEnvelope<null> {
+  const message = formatErrorMessage(error);
   if (isEctlError(error)) {
-    return createErrorEnvelope(command, error.code, error.message);
+    return createErrorEnvelope(command, error.code, message);
   }
 
-  const message = error instanceof Error ? error.message : String(error);
   return createErrorEnvelope(command, ECTL_ERROR_CODES.CONFIG_INVALID, message);
 }
 

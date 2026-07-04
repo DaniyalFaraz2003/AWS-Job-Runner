@@ -4,7 +4,6 @@ import chalk from "chalk";
 import type { CliContext } from "../context.js";
 import { logVerbose } from "../context.js";
 import {
-  createTaskOrchestrator,
   type DeployPhase,
   type DeployProgress,
   type DeployTaskResult,
@@ -12,11 +11,11 @@ import {
 import { resolveTaskName } from "../../state/task-name.js";
 import {
   createSuccessEnvelope,
-  envelopeFromError,
   printJson,
 } from "../output/envelope.js";
+import { handleCommandError } from "../output/command-error.js";
+import { createOrchestratorForContext } from "../service-deps.js";
 import { StepProgressReporter } from "../output/step-progress.js";
-import { ECTL_ERROR_CODES, isEctlError } from "../../types/errors.js";
 
 export interface DeployCommandOptions {
   readonly name?: string;
@@ -101,23 +100,14 @@ function printDeploySuccess(result: DeployTaskResult): void {
   console.log("");
 }
 
-function printDeployFailure(error: unknown): void {
-  if (
-    isEctlError(error) &&
-    error.code === ECTL_ERROR_CODES.DEPLOY_PARTIAL_FAILURE
-  ) {
+function printDeployFailure(message: string): void {
+  if (message.includes("AWS resources were left running")) {
     console.error(chalk.red.bold("Deploy failed — resources left running."));
     console.error("");
-    console.error(error.message);
+    console.error(message);
     return;
   }
 
-  if (isEctlError(error)) {
-    console.error(chalk.red(error.message));
-    return;
-  }
-
-  const message = error instanceof Error ? error.message : String(error);
   console.error(chalk.red(message));
 }
 
@@ -142,7 +132,7 @@ export async function runDeployCommand(
     }`,
   );
 
-  const orchestrator = createTaskOrchestrator();
+  const orchestrator = createOrchestratorForContext(ctx);
   const reporter = ctx.json ? null : new StepProgressReporter();
 
   if (reporter !== null) {
@@ -200,12 +190,9 @@ export function registerDeployCommand(
       try {
         await runDeployCommand(local, ctx);
       } catch (error) {
-        if (ctx.json) {
-          printJson(envelopeFromError("deploy", error));
-        } else {
-          printDeployFailure(error);
-        }
-        process.exit(1);
+        handleCommandError(ctx, "deploy", error, {
+          printHuman: printDeployFailure,
+        });
       }
     });
 }
