@@ -173,7 +173,7 @@ ectl launches instances in your account's **default VPC** with a **public IP**. 
 ### From npm (recommended)
 
 ```powershell
-npm install -g ectl
+npm install -g @daniyalfaraz2003/ectl
 ```
 
 Verify:

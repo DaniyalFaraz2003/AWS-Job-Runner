@@ -1,5 +1,5 @@
 {
-  "name": "ectl",
+  "name": "@daniyalfaraz2003/ectl",
   "version": "1.0.0",
   "description": "Project-local CLI to run long-lived tasks on AWS EC2",
   "type": "module",
