@@ -11,8 +11,7 @@ import { registerPullCommand } from "./commands/pull.js";
 import { registerSshCommand } from "./commands/ssh.js";
 import { registerStopCommand } from "./commands/stop.js";
 import { registerTerminateCommand } from "./commands/terminate.js";
-
-const PACKAGE_VERSION = "0.0.0";
+import { getPackageVersion } from "./package-version.js";
 
 export async function runCli(argv: string[]): Promise<void> {
   const program = new Command();
@@ -20,7 +19,7 @@ export async function runCli(argv: string[]): Promise<void> {
   program
     .name("ectl")
     .description("Run long-lived tasks on AWS EC2 from a project-local .ectl directory")
-    .version(PACKAGE_VERSION, "-V, --version", "Show version number")
+    .version(getPackageVersion(), "-V, --version", "Show version number")
     .option("--json", "Emit machine-readable JSON output")
     .option("--verbose", "Enable verbose logging")
     .enablePositionalOptions()
