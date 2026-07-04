@@ -58,3 +58,19 @@ export {
   type TaskStatusCheckerDeps,
   type TaskStatusSnapshot,
 } from "./task-status.js";
+export {
+  createTaskPuller,
+  TaskPuller,
+  type PullProgress,
+  type PullTaskInput,
+  type PullTaskResult,
+  type TaskPullerDeps,
+} from "./task-puller.js";
+export {
+  createTaskTerminator,
+  TaskTerminator,
+  type TerminateProgress,
+  type TerminateTaskInput,
+  type TerminateTaskResult,
+  type TaskTerminatorDeps,
+} from "./task-terminator.js";

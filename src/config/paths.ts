@@ -74,6 +74,10 @@ export function getLogsDir(projectRoot: string): string {
   return join(getEctlDir(projectRoot), "logs");
 }
 
+export function getTaskLogsDir(projectRoot: string, taskName: string): string {
+  return join(getLogsDir(projectRoot), taskName);
+}
+
 export function ectlDirExists(projectRoot: string): boolean {
   return existsSync(getEctlDir(projectRoot));
 }
