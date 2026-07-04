@@ -1,7 +1,17 @@
 export { createEc2Client, type CreateEc2ClientOptions } from "./client.js";
 export { validateAwsCredentials } from "./credentials.js";
 export { isAwsCredentialError, wrapAwsError } from "./map-aws-error.js";
-export { AmiResolver } from "./ami-resolver.js";
+export {
+  AmiResolver,
+  detectUbuntuVersion,
+  formatAmiChoiceLabel,
+  getCanonicalOwnerId,
+  UBUNTU_LTS_RELEASES,
+  type AmiResolverDeps,
+  type UbuntuAmiCandidate,
+  type UbuntuLtsRelease,
+  type UbuntuLtsVersion,
+} from "./ami-resolver.js";
 export {
   CallerIpDetector,
   formatIpv4Cidr,
