@@ -22,6 +22,8 @@ export interface SshConnectConfig {
 
 export interface ExecCommandOptions {
   readonly cwd?: string;
+  readonly onStdout?: (chunk: string) => void;
+  readonly onStderr?: (chunk: string) => void;
 }
 
 export interface TransferProgressCallback {
@@ -91,6 +93,16 @@ export class NodeSshClient implements SshClient {
     const execOptions: Parameters<NodeSSH["execCommand"]>[1] = {};
     if (options.cwd !== undefined) {
       execOptions.cwd = options.cwd;
+    }
+    if (options.onStdout !== undefined) {
+      execOptions.onStdout = (chunk: Buffer) => {
+        options.onStdout?.(chunk.toString());
+      };
+    }
+    if (options.onStderr !== undefined) {
+      execOptions.onStderr = (chunk: Buffer) => {
+        options.onStderr?.(chunk.toString());
+      };
     }
 
     const result = await this.ssh.execCommand(command, execOptions);

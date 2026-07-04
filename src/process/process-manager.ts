@@ -133,6 +133,70 @@ export class ProcessManager {
   ): string {
     return buildPm2FollowLogsCommand(processName, options);
   }
+
+  /** Stream remote command output until completion or abort (FR-LOGS-2). */
+  async streamLogs(
+    command: string,
+    options: {
+      readonly onStdout?: (chunk: string) => void;
+      readonly onStderr?: (chunk: string) => void;
+      readonly signal?: AbortSignal;
+    } = {},
+  ): Promise<void> {
+    const execOptions: {
+      onStdout?: (chunk: string) => void;
+      onStderr?: (chunk: string) => void;
+    } = {};
+    if (options.onStdout !== undefined) {
+      execOptions.onStdout = options.onStdout;
+    }
+    if (options.onStderr !== undefined) {
+      execOptions.onStderr = options.onStderr;
+    }
+
+    const execPromise = this.ssh.execCommand(command, execOptions);
+
+    let result;
+    if (options.signal === undefined) {
+      result = await execPromise;
+    } else {
+      const abortPromise = new Promise<"aborted">((resolve) => {
+        if (options.signal?.aborted === true) {
+          resolve("aborted");
+          return;
+        }
+
+        options.signal?.addEventListener(
+          "abort",
+          () => {
+            resolve("aborted");
+          },
+          { once: true },
+        );
+      });
+
+      const outcome = await Promise.race([
+        execPromise.then((value) => ({ kind: "completed" as const, value })),
+        abortPromise.then(() => ({ kind: "aborted" as const })),
+      ]);
+
+      if (outcome.kind === "aborted") {
+        return;
+      }
+
+      result = outcome.value;
+    }
+
+    if (result.code !== 0 && result.code !== null) {
+      const detail = result.stderr.trim() || result.stdout.trim();
+      throw new EctlError(
+        ECTL_ERROR_CODES.SSH_CONNECTION_FAILED,
+        detail.length > 0
+          ? `Log stream failed: ${detail}. Try \`ectl ssh\`.`
+          : "Log stream failed. Try `ectl ssh`.",
+      );
+    }
+  }
 }
 
 export function createProcessManager(deps: ProcessManagerDeps): ProcessManager {
