@@ -23,6 +23,30 @@ export {
   type TaskRunnerDeps,
 } from "./task-runner.js";
 export {
+  createTaskStopper,
+  TaskStopper,
+  type StopProgress,
+  type StopTaskInput,
+  type StopTaskResult,
+  type TaskStopperDeps,
+} from "./task-stopper.js";
+export {
+  createTaskSshSession,
+  TaskSshSession,
+  type SshProgress,
+  type SshTaskInput,
+  type SshTaskResult,
+  type TaskSshSessionDeps,
+} from "./task-ssh.js";
+export {
+  createTaskLogsFetcher,
+  TaskLogsFetcher,
+  type LogsProgress,
+  type LogsTaskInput,
+  type LogsTaskResult,
+  type TaskLogsFetcherDeps,
+} from "./task-logs.js";
+export {
   createTaskStatusChecker,
   isNoActiveTaskResult,
   syncStateFromAwsInstance,
