@@ -10,13 +10,20 @@ import { ArchiveBuilder } from "../../src/transfer/archive-builder.js";
 const execFileAsync = promisify(execFile);
 
 async function listZipEntries(zipPath: string): Promise<string[]> {
-  const escaped = zipPath.replace(/'/g, "''");
-  const { stdout } = await execFileAsync("powershell", [
-    "-NoProfile",
-    "-Command",
-    `Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead('${escaped}').Entries | ForEach-Object { $_.FullName }`,
-  ]);
+  if (process.platform === "win32") {
+    const escaped = zipPath.replace(/'/g, "''");
+    const { stdout } = await execFileAsync("powershell.exe", [
+      "-NoProfile",
+      "-Command",
+      `Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead('${escaped}').Entries | ForEach-Object { $_.FullName }`,
+    ]);
+    return stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+  }
 
+  const { stdout } = await execFileAsync("unzip", ["-Z1", zipPath]);
   return stdout
     .split(/\r?\n/)
     .map((line) => line.trim())

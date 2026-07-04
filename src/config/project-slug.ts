@@ -1,9 +1,12 @@
-import { basename } from "node:path";
-
 /** Derive a stable slug from the project directory name for AWS resource naming. */
 export function deriveProjectSlug(projectRoot: string): string {
-  const raw = basename(projectRoot);
-  const normalized = raw
+  const dirName =
+    projectRoot
+      .replace(/\\/g, "/")
+      .split("/")
+      .filter(Boolean)
+      .pop() ?? "";
+  const normalized = dirName
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");

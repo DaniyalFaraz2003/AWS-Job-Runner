@@ -1,4 +1,4 @@
-import { join, posix } from "node:path";
+import { join, posix, win32 } from "node:path";
 
 /** Quote a value for safe use in a POSIX shell single-quoted string. */
 export function shellQuote(value: string): string {
@@ -23,8 +23,15 @@ export function resolveLocalArtifactPath(
   localDest: string,
   artifactPath: string,
 ): string {
-  const normalized = artifactPath.replace(/^\.\//, "").replace(/^\/+/, "");
-  return join(localDest, ...normalized.split("/"));
+  const artifactSegments = artifactPath
+    .replace(/^\.\//, "")
+    .replace(/^\/+/, "")
+    .split(/[\\/]+/)
+    .filter(Boolean);
+
+  // v1 targets Windows; honor backslash paths even when tests run on Linux CI.
+  const pathApi = localDest.includes("\\") ? win32 : { join };
+  return pathApi.join(localDest, ...artifactSegments);
 }
 
 export type RemotePathKind = "file" | "directory" | "missing";
