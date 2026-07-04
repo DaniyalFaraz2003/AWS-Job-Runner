@@ -96,7 +96,7 @@ async function createProject(): Promise<{ root: string; store: StateStore }> {
 }
 
 describe("pm2 command builders", () => {
-  it("buildPm2StartCommand runs from remoteWorkDir with bash -lc", () => {
+  it("buildPm2StartCommand passes bash -c as a quoted pm2 script with no autorestart", () => {
     const command = buildPm2StartCommand(
       "default",
       "npm install && npm start",
@@ -104,8 +104,9 @@ describe("pm2 command builders", () => {
     );
 
     expect(command).toContain("cd '/home/ubuntu/ectl-workspace'");
-    expect(command).toContain("pm2 start --name 'default'");
-    expect(command).toContain("-lc 'npm install && npm start'");
+    expect(command).toContain("pm2 start 'bash -c '\\''npm install && npm start'\\'''");
+    expect(command).toContain("--name 'default' --no-autorestart");
+    expect(command).not.toContain("-- bash");
   });
 
   it("buildPm2LogsCommand limits lines and uses nostream", () => {
