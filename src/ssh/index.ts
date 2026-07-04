@@ -9,8 +9,11 @@ export {
   NodeSshClient,
   type ExecCommandOptions,
   type ExecCommandResult,
+  type GetFileOptions,
+  type PutFileOptions,
   type SshClient,
   type SshConnectConfig,
+  type TransferProgressCallback,
 } from "./node-ssh-client.js";
 export {
   createSshManager,

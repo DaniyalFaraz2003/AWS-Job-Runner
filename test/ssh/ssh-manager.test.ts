@@ -3,6 +3,8 @@ import { ECTL_ERROR_CODES } from "../../src/types/errors.js";
 import type {
   ExecCommandOptions,
   ExecCommandResult,
+  GetFileOptions,
+  PutFileOptions,
   SshClient,
   SshConnectConfig,
 } from "../../src/ssh/node-ssh-client.js";
@@ -47,6 +49,30 @@ class MockSshClient implements SshClient {
     _options?: ExecCommandOptions,
   ): Promise<ExecCommandResult> {
     return this.execCommandResult;
+  }
+
+  async putFile(
+    _localPath: string,
+    _remotePath: string,
+    _options?: PutFileOptions,
+  ): Promise<void> {
+    return;
+  }
+
+  async getFile(
+    _remotePath: string,
+    _localPath: string,
+    _options?: GetFileOptions,
+  ): Promise<void> {
+    return;
+  }
+
+  async getDirectory(
+    _remotePath: string,
+    _localPath: string,
+    _options?: GetFileOptions,
+  ): Promise<void> {
+    return;
   }
 
   async openShell(): Promise<void> {
