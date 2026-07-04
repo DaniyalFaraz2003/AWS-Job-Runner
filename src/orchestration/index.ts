@@ -14,3 +14,11 @@ export {
   type PushTaskResult,
   type TaskPusherDeps,
 } from "./task-pusher.js";
+export {
+  createTaskRunner,
+  TaskRunner,
+  type RunProgress,
+  type RunTaskInput,
+  type RunTaskResult,
+  type TaskRunnerDeps,
+} from "./task-runner.js";
