@@ -19,6 +19,12 @@ export class StepProgressReporter {
     console.log("");
   }
 
+  /** Print a phase divider between step groups (e.g. deploy launch → push → run). */
+  printSection(title: string): void {
+    console.log("");
+    console.log(chalk.bold.cyan(title));
+  }
+
   beginStep(label: string): void {
     this.currentLabel = label;
     this.spinner = ora({

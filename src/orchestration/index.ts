@@ -74,3 +74,12 @@ export {
   type TerminateTaskResult,
   type TaskTerminatorDeps,
 } from "./task-terminator.js";
+export {
+  createTaskOrchestrator,
+  TaskOrchestrator,
+  type DeployPhase,
+  type DeployProgress,
+  type DeployTaskInput,
+  type DeployTaskResult,
+  type TaskOrchestratorDeps,
+} from "./task-orchestrator.js";
