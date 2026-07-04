@@ -1,10 +1,12 @@
-# ectl
+# AWS Job Runner - ectl
 
 **ectl** is a project-local command-line tool that runs long-lived jobs on Amazon EC2. Think of it like **git for cloud tasks**: run `ectl init` once in your project folder, and everything ectl needs — configuration, SSH keys, instance state, and downloaded logs — lives in a `.ectl/` directory beside your code. Nothing is stored in a global config directory.
 
 Instead of manually clicking through the AWS Console (launch instance → upload files → install dependencies → start your process → download results → terminate), ectl automates the full lifecycle with a handful of commands.
 
 ---
+
+
 
 ## Table of contents
 
@@ -17,17 +19,17 @@ Instead of manually clicking through the AWS Console (launch instance → upload
 - [Project configuration](#project-configuration)
 - [Command reference](#command-reference)
   - [Global flags](#global-flags)
-  - [`ectl init`](#ectl-init)
-  - [`ectl launch`](#ectl-launch)
-  - [`ectl push`](#ectl-push)
-  - [`ectl run`](#ectl-run)
-  - [`ectl deploy`](#ectl-deploy)
-  - [`ectl status`](#ectl-status)
-  - [`ectl logs`](#ectl-logs)
-  - [`ectl pull`](#ectl-pull)
-  - [`ectl ssh`](#ectl-ssh)
-  - [`ectl stop`](#ectl-stop)
-  - [`ectl terminate`](#ectl-terminate)
+  - `[ectl init](#ectl-init)`
+  - `[ectl launch](#ectl-launch)`
+  - `[ectl push](#ectl-push)`
+  - `[ectl run](#ectl-run)`
+  - `[ectl deploy](#ectl-deploy)`
+  - `[ectl status](#ectl-status)`
+  - `[ectl logs](#ectl-logs)`
+  - `[ectl pull](#ectl-pull)`
+  - `[ectl ssh](#ectl-ssh)`
+  - `[ectl stop](#ectl-stop)`
+  - `[ectl terminate](#ectl-terminate)`
 - [Typical workflows](#typical-workflows)
 - [JSON output (scripting)](#json-output-scripting)
 - [Security notes](#security-notes)
@@ -37,6 +39,8 @@ Instead of manually clicking through the AWS Console (launch instance → upload
 - [License](#license)
 
 ---
+
+
 
 ## What ectl does
 
@@ -55,21 +59,29 @@ Each project supports **one active task at a time** (v1). The default task name 
 
 ---
 
+
+
 ## Requirements
 
-| Requirement | Details |
-|-------------|---------|
-| **Node.js** | Version **22 or newer** (matches the remote Node version ectl installs) |
-| **Operating system** | **Windows PowerShell** (primary v1 target) |
-| **AWS account** | With permissions to manage EC2 (see [AWS setup](#aws-setup-and-credentials)) |
-| **Default VPC** | Your AWS account must have a **default VPC** with a public subnet and auto-assign public IP enabled |
-| **Internet access** | Your machine needs outbound HTTPS to AWS APIs; the EC2 instance needs outbound internet for bootstrap (Node/npm/pm2 install) |
+
+| Requirement          | Details                                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Node.js**          | Version **22 or newer** (matches the remote Node version ectl installs)                                                      |
+| **Operating system** | **Windows PowerShell** (primary v1 target)                                                                                   |
+| **AWS account**      | With permissions to manage EC2 (see [AWS setup](#aws-setup-and-credentials))                                                 |
+| **Default VPC**      | Your AWS account must have a **default VPC** with a public subnet and auto-assign public IP enabled                          |
+| **Internet access**  | Your machine needs outbound HTTPS to AWS APIs; the EC2 instance needs outbound internet for bootstrap (Node/npm/pm2 install) |
+
 
 ectl does **not** require the AWS CLI to be installed. It uses the AWS SDK for JavaScript v3 internally.
 
 ---
 
+
+
 ## AWS setup and credentials
+
+
 
 ### How ectl authenticates
 
@@ -98,6 +110,8 @@ For temporary credentials (STS / assumed role), also set:
 $env:AWS_SESSION_TOKEN = "your-session-token"
 ```
 
+
+
 ### Option B — AWS credentials file (recommended for daily use)
 
 1. Install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) (optional but convenient for setup).
@@ -124,19 +138,23 @@ $env:AWS_PROFILE = "my-sso-profile"
 ectl init
 ```
 
+
+
 ### Required IAM permissions
 
 ectl needs broad EC2 permissions in v1. At minimum, your IAM user or role should allow:
 
-| Action | Used for |
-|--------|----------|
-| `ec2:DescribeRegions` | Validate credentials during init |
-| `ec2:CreateKeyPair`, `ec2:ImportKeyPair` | SSH key management |
-| `ec2:CreateSecurityGroup`, `ec2:AuthorizeSecurityGroupIngress`, `ec2:DeleteSecurityGroup` | SSH firewall rules |
-| `ec2:DescribeImages` | Resolve Ubuntu LTS AMI |
-| `ec2:RunInstances`, `ec2:TerminateInstances` | Launch and tear down instances |
-| `ec2:DescribeInstances` | Status reconciliation, public IP lookup |
-| `ec2:CreateTags` | Tag instances and security groups |
+
+| Action                                                                                    | Used for                                |
+| ----------------------------------------------------------------------------------------- | --------------------------------------- |
+| `ec2:DescribeRegions`                                                                     | Validate credentials during init        |
+| `ec2:CreateKeyPair`, `ec2:ImportKeyPair`                                                  | SSH key management                      |
+| `ec2:CreateSecurityGroup`, `ec2:AuthorizeSecurityGroupIngress`, `ec2:DeleteSecurityGroup` | SSH firewall rules                      |
+| `ec2:DescribeImages`                                                                      | Resolve Ubuntu LTS AMI                  |
+| `ec2:RunInstances`, `ec2:TerminateInstances`                                              | Launch and tear down instances          |
+| `ec2:DescribeInstances`                                                                   | Status reconciliation, public IP lookup |
+| `ec2:CreateTags`                                                                          | Tag instances and security groups       |
+
 
 For development, an administrator or PowerUser policy is typically sufficient. For production, scope policies to the default VPC and tag-based conditions.
 
@@ -146,7 +164,11 @@ ectl launches instances in your account's **default VPC** with a **public IP**. 
 
 ---
 
+
+
 ## Installation
+
+
 
 ### From npm (recommended)
 
@@ -161,6 +183,8 @@ ectl --version
 ectl --help
 ```
 
+
+
 ### From source
 
 ```powershell
@@ -173,7 +197,11 @@ npm link   # optional: expose `ectl` globally from your clone
 
 ---
 
+
+
 ## Core concepts
+
+
 
 ### Project-local `.ectl/` directory
 
@@ -195,16 +223,20 @@ my-project/
 └── .gitignore               # ectl init appends `.ectl/` if missing
 ```
 
+
+
 ### Task lifecycle
 
-| Status | Meaning |
-|--------|---------|
-| `provisioning` | Instance is being created or waiting for status checks |
-| `running` | Instance is up and the pm2 process is (or was) started |
-| `stopped` | Instance is up but pm2 process was stopped via `ectl stop` |
-| `failed` | Something went wrong (e.g. deploy partial failure) |
-| `completed` | Task finished successfully (reserved for future use) |
-| `terminated` | Instance destroyed; safe to launch again |
+
+| Status         | Meaning                                                    |
+| -------------- | ---------------------------------------------------------- |
+| `provisioning` | Instance is being created or waiting for status checks     |
+| `running`      | Instance is up and the pm2 process is (or was) started     |
+| `stopped`      | Instance is up but pm2 process was stopped via `ectl stop` |
+| `failed`       | Something went wrong (e.g. deploy partial failure)         |
+| `completed`    | Task finished successfully (reserved for future use)       |
+| `terminated`   | Instance destroyed; safe to launch again                   |
+
 
 **Active** statuses (`provisioning`, `running`, `stopped`, `failed`) block new `launch` or `deploy` until you run `ectl terminate`.
 
@@ -212,8 +244,8 @@ my-project/
 
 When starting a process (`ectl run` or `ectl deploy`), ectl needs a shell command:
 
-1. **`--run "<command>"` flag** — highest priority; runs the command you pass on the command line
-2. **`.ectl/run.sh`** — used if no `--run` flag is provided
+1. `--run "<command>"` **flag** — highest priority; runs the command you pass on the command line
+2. `.ectl/run.sh` — used if no `--run` flag is provided
 3. **Error** — if neither exists, ectl fails with instructions to add one
 
 The remote instance runs your command under **pm2** so it survives SSH disconnects.
@@ -223,6 +255,8 @@ The remote instance runs your command under **pm2** so it survives SSH disconnec
 `ectl push` (and `ectl deploy`) zip your project and upload it. Patterns in `.ectlignore` are excluded — same syntax as `.gitignore`. Default patterns exclude `node_modules/`, `.git/`, `.ectl/`, `dist/`, etc.
 
 ---
+
+
 
 ## Quickstart
 
@@ -254,6 +288,8 @@ ectl pull
 ectl terminate
 ```
 
+
+
 ### Step-by-step (debug-friendly)
 
 Use individual commands when you want to inspect each phase:
@@ -271,25 +307,31 @@ ectl terminate       # Destroy instance and security group
 
 ---
 
+
+
 ## Project configuration
+
+
 
 ### `.ectl/config.json`
 
 Written by `ectl init`. Key fields:
 
-| Field | Description |
-|-------|-------------|
-| `region` | AWS region for all resources (e.g. `us-east-1`) |
-| `instanceType` | EC2 instance type (default `t3.medium`) |
-| `amiId` | Ubuntu LTS AMI ID (auto-resolved during init if not set) |
-| `sshUser` | SSH login user (default `ubuntu`) |
-| `remoteWorkDir` | Remote directory for project files (default `/home/ubuntu/ectl-workspace`) |
-| `keyPairName` | AWS EC2 key pair name |
-| `keySource` | `"generated"` or `"imported"` |
-| `nodeVersion` | Node.js major version to install remotely (from your local Node at init) |
+
+| Field           | Description                                                                         |
+| --------------- | ----------------------------------------------------------------------------------- |
+| `region`        | AWS region for all resources (e.g. `us-east-1`)                                     |
+| `instanceType`  | EC2 instance type (default `t3.medium`)                                             |
+| `amiId`         | Ubuntu LTS AMI ID (auto-resolved during init if not set)                            |
+| `sshUser`       | SSH login user (default `ubuntu`)                                                   |
+| `remoteWorkDir` | Remote directory for project files (default `/home/ubuntu/ectl-workspace`)          |
+| `keyPairName`   | AWS EC2 key pair name                                                               |
+| `keySource`     | `"generated"` or `"imported"`                                                       |
+| `nodeVersion`   | Node.js major version to install remotely (from your local Node at init)            |
 | `artifactPaths` | Remote paths to download with `ectl pull` (relative to `remoteWorkDir` or absolute) |
-| `projectSlug` | Derived from your folder name; used in AWS resource names and tags |
-| `tags` | Optional extra AWS tags merged with required `ectl:*` tags |
+| `projectSlug`   | Derived from your folder name; used in AWS resource names and tags                  |
+| `tags`          | Optional extra AWS tags merged with required `ectl:*` tags                          |
+
 
 Example snippet:
 
@@ -302,6 +344,8 @@ Example snippet:
   "remoteWorkDir": "/home/ubuntu/ectl-workspace"
 }
 ```
+
+
 
 ### `.ectlignore`
 
@@ -335,6 +379,8 @@ Used automatically when you omit `--run`.
 
 ---
 
+
+
 ## Command reference
 
 Every command supports `--help` for built-in usage text:
@@ -356,28 +402,36 @@ Both work.
 
 ---
 
+
+
 ### Global flags
 
 These apply to the root `ectl` program and are inherited by subcommands (subcommands also declare their own copies for convenience).
 
-| Flag | Short | Description |
-|------|-------|-------------|
-| `--version` | `-V` | Print the ectl version number and exit |
-| `--help` | `-h` | Show help for ectl or a specific subcommand |
-| `--json` | | Emit structured JSON to stdout (see [JSON output](#json-output-scripting)). Suppresses decorative human output. Some interactive features are disabled in JSON mode. |
-| `--verbose` | | Enable debug logging to stderr, including AWS request IDs where available |
+
+| Flag        | Short | Description                                                                                                                                                          |
+| ----------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--version` | `-V`  | Print the ectl version number and exit                                                                                                                               |
+| `--help`    | `-h`  | Show help for ectl or a specific subcommand                                                                                                                          |
+| `--json`    |       | Emit structured JSON to stdout (see [JSON output](#json-output-scripting)). Suppresses decorative human output. Some interactive features are disabled in JSON mode. |
+| `--verbose` |       | Enable debug logging to stderr, including AWS request IDs where available                                                                                            |
+
 
 **JSON mode caveats:**
 
-| Command | Behavior with `--json` |
-|---------|------------------------|
-| `ectl ssh` | **Not supported** — interactive SSH cannot produce JSON output |
-| `ectl logs --follow` | **Not supported** — streaming and JSON are mutually exclusive |
-| `ectl terminate` | Skips the destructive confirmation prompt (use with care in scripts) |
-| `ectl init --force` | Skips the reinitialize confirmation prompt |
+
+| Command                             | Behavior with `--json`                                               |
+| ----------------------------------- | -------------------------------------------------------------------- |
+| `ectl ssh`                          | **Not supported** — interactive SSH cannot produce JSON output       |
+| `ectl logs --follow`                | **Not supported** — streaming and JSON are mutually exclusive        |
+| `ectl terminate`                    | Skips the destructive confirmation prompt (use with care in scripts) |
+| `ectl init --force`                 | Skips the reinitialize confirmation prompt                           |
 | `ectl launch/deploy --allow-any-ip` | Auto-confirms the security warning (warning still printed to stderr) |
 
+
 ---
+
+
 
 ### `ectl init`
 
@@ -397,15 +451,17 @@ ectl init [options]
 
 In `--json` mode, prompts are skipped where possible; AMI defaults to Ubuntu 24.04 if available, otherwise the first candidate.
 
-| Option | Description |
-|--------|-------------|
-| `--region <region>` | AWS region (e.g. `us-east-1`). Skips the region prompt. |
-| `--instance-type <type>` | EC2 instance type (e.g. `t3.medium`). Skips the instance type prompt. |
-| `--ami-id <amiId>` | Specific Ubuntu LTS AMI ID. Skips the AMI selection prompt. |
-| `--import-key <path>` | Import an existing PEM private key instead of generating a new one. The key is copied to `.ectl/keys/ectl-key.pem` and registered in AWS if needed. |
-| `--force` | Reinitialize an existing `.ectl/` directory. **Destructive** — deletes the current `.ectl/` tree after confirmation (confirmation skipped when combined with `--json`). |
-| `--json` | Machine-readable output envelope |
-| `--verbose` | Debug logging |
+
+| Option                   | Description                                                                                                                                                             |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--region <region>`      | AWS region (e.g. `us-east-1`). Skips the region prompt.                                                                                                                 |
+| `--instance-type <type>` | EC2 instance type (e.g. `t3.medium`). Skips the instance type prompt.                                                                                                   |
+| `--ami-id <amiId>`       | Specific Ubuntu LTS AMI ID. Skips the AMI selection prompt.                                                                                                             |
+| `--import-key <path>`    | Import an existing PEM private key instead of generating a new one. The key is copied to `.ectl/keys/ectl-key.pem` and registered in AWS if needed.                     |
+| `--force`                | Reinitialize an existing `.ectl/` directory. **Destructive** — deletes the current `.ectl/` tree after confirmation (confirmation skipped when combined with `--json`). |
+| `--json`                 | Machine-readable output envelope                                                                                                                                        |
+| `--verbose`              | Debug logging                                                                                                                                                           |
+
 
 **Examples:**
 
@@ -432,6 +488,8 @@ ectl init --force
 
 ---
 
+
+
 ### `ectl launch`
 
 **Purpose:** Provision AWS resources for a task — security group (SSH on port 22), EC2 instance in the default VPC with a public IP, required tags, and local state file. Waits for the instance to pass status checks and verifies SSH connectivity.
@@ -442,12 +500,14 @@ ectl init --force
 ectl launch [options]
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--name <task>` | Task name. Default: `default`. |
+
+| Option           | Description                                                                                                                                                                                                                  |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--name <task>`  | Task name. Default: `default`.                                                                                                                                                                                               |
 | `--allow-any-ip` | Allow SSH from **any IP** (`0.0.0.0/0`) instead of only your current public IPv4. Shows a security warning and requires confirmation (auto-confirmed with `--json`). **Not recommended** unless you understand the exposure. |
-| `--json` | Machine-readable output |
-| `--verbose` | Debug logging |
+| `--json`         | Machine-readable output                                                                                                                                                                                                      |
+| `--verbose`      | Debug logging                                                                                                                                                                                                                |
+
 
 **What it creates:**
 
@@ -475,6 +535,8 @@ ectl launch --json
 
 ---
 
+
+
 ### `ectl push`
 
 **Purpose:** Upload your project to the running EC2 instance. Builds a zip archive honoring `.ectlignore`, uploads via SFTP, and extracts into `remoteWorkDir` on the instance (replacing previous content).
@@ -485,11 +547,13 @@ ectl launch --json
 ectl push [options]
 ```
 
-| Option | Description |
-|--------|-------------|
+
+| Option          | Description                                      |
+| --------------- | ------------------------------------------------ |
 | `--name <task>` | Task name. Default: the current **active task**. |
-| `--json` | Machine-readable output |
-| `--verbose` | Debug logging |
+| `--json`        | Machine-readable output                          |
+| `--verbose`     | Debug logging                                    |
+
 
 **Requires:** An active task in `running` or `stopped` status with a reachable public IP.
 
@@ -505,6 +569,8 @@ ectl push --verbose
 
 ---
 
+
+
 ### `ectl run`
 
 **Purpose:** Connect to the instance, bootstrap the environment on first use (install `curl`, `unzip`, Node.js matching `config.nodeVersion`, npm, and pm2), then start your command under pm2. Writes `.ectl/tasks/<name>/run.json` and sets task status to `running`.
@@ -515,12 +581,14 @@ ectl push --verbose
 ectl run [options]
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--name <task>` | Task name. Default: active task. |
+
+| Option            | Description                                                                                  |
+| ----------------- | -------------------------------------------------------------------------------------------- |
+| `--name <task>`   | Task name. Default: active task.                                                             |
 | `--run <command>` | Shell command to execute on the remote instance. **Overrides** `.ectl/run.sh` when provided. |
-| `--json` | Machine-readable output |
-| `--verbose` | Debug logging |
+| `--json`          | Machine-readable output                                                                      |
+| `--verbose`       | Debug logging                                                                                |
+
 
 **Run command priority:**
 
@@ -541,6 +609,8 @@ ectl run --name default --run "npm test"
 
 ---
 
+
+
 ### `ectl deploy`
 
 **Purpose:** One-shot workflow — runs **launch → push → run** in sequence. Best for the common "just run my job" path.
@@ -551,13 +621,15 @@ ectl run --name default --run "npm test"
 ectl deploy [options]
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--name <task>` | Task name. Default: `default`. |
+
+| Option            | Description                                     |
+| ----------------- | ----------------------------------------------- |
+| `--name <task>`   | Task name. Default: `default`.                  |
 | `--run <command>` | Shell command to run (same rules as `ectl run`) |
-| `--allow-any-ip` | Same as `ectl launch --allow-any-ip` |
-| `--json` | Machine-readable output |
-| `--verbose` | Debug logging |
+| `--allow-any-ip`  | Same as `ectl launch --allow-any-ip`            |
+| `--json`          | Machine-readable output                         |
+| `--verbose`       | Debug logging                                   |
+
 
 **Examples:**
 
@@ -574,6 +646,8 @@ ectl deploy --allow-any-ip --run "npm start"   # not recommended
 
 ---
 
+
+
 ### `ectl status`
 
 **Purpose:** Show the current task's state in a human-readable table. Automatically **reconciles** with AWS (`DescribeInstances`, security groups) and queries pm2 over SSH when the instance is reachable. Updates local state if the public IP changed or the instance was terminated externally.
@@ -584,26 +658,30 @@ ectl deploy --allow-any-ip --run "npm start"   # not recommended
 ectl status [options]
 ```
 
-| Option | Description |
-|--------|-------------|
+
+| Option          | Description                      |
+| --------------- | -------------------------------- |
 | `--name <task>` | Task name. Default: active task. |
-| `--json` | Machine-readable output |
-| `--verbose` | Debug logging |
+| `--json`        | Machine-readable output          |
+| `--verbose`     | Debug logging                    |
+
 
 **Displayed fields (human mode):**
 
-| Field | Description |
-|-------|-------------|
-| Task | Task name |
-| Status | Local lifecycle status (color-coded) |
-| Instance | EC2 instance ID |
-| Public IP | Current public IPv4 |
-| Security group | Security group ID |
-| Region | AWS region |
-| AWS instance | Live EC2 state from AWS (`running`, `stopped`, `terminated`, etc.) |
-| pm2 | Process status and PID, or `unreachable` / `n/a` |
-| Run command / source / started | From `run.json` if the process was started |
-| Last reconciled | Timestamp of last AWS sync |
+
+| Field                          | Description                                                        |
+| ------------------------------ | ------------------------------------------------------------------ |
+| Task                           | Task name                                                          |
+| Status                         | Local lifecycle status (color-coded)                               |
+| Instance                       | EC2 instance ID                                                    |
+| Public IP                      | Current public IPv4                                                |
+| Security group                 | Security group ID                                                  |
+| Region                         | AWS region                                                         |
+| AWS instance                   | Live EC2 state from AWS (`running`, `stopped`, `terminated`, etc.) |
+| pm2                            | Process status and PID, or `unreachable` / `n/a`                   |
+| Run command / source / started | From `run.json` if the process was started                         |
+| Last reconciled                | Timestamp of last AWS sync                                         |
+
 
 **Examples:**
 
@@ -617,6 +695,8 @@ If no active task exists, ectl prints `No active task.` and exits with code 0.
 
 ---
 
+
+
 ### `ectl logs`
 
 **Purpose:** Fetch or stream **pm2 logs** for the task's process on the remote instance.
@@ -627,13 +707,15 @@ If no active task exists, ectl prints `No active task.` and exits with code 0.
 ectl logs [task] [options]
 ```
 
-| Argument / option | Description |
-|-------------------|-------------|
-| `[task]` | Optional task name. Default: active task. Example: `ectl logs default` |
-| `--lines <n>` | Number of log lines to show for a one-shot fetch. Default: **100**. Must be a positive integer. |
-| `-f`, `--follow` | Stream logs in real time until you press **Ctrl+C**. Cannot be combined with `--json`. |
-| `--json` | Machine-readable output (one-shot fetch only) |
-| `--verbose` | Debug logging |
+
+| Argument / option | Description                                                                                     |
+| ----------------- | ----------------------------------------------------------------------------------------------- |
+| `[task]`          | Optional task name. Default: active task. Example: `ectl logs default`                          |
+| `--lines <n>`     | Number of log lines to show for a one-shot fetch. Default: **100**. Must be a positive integer. |
+| `-f`, `--follow`  | Stream logs in real time until you press **Ctrl+C**. Cannot be combined with `--json`.          |
+| `--json`          | Machine-readable output (one-shot fetch only)                                                   |
+| `--verbose`       | Debug logging                                                                                   |
+
 
 **Examples:**
 
@@ -649,6 +731,8 @@ In `--follow` mode, ectl connects via SSH and streams stdout/stderr from pm2 unt
 
 ---
 
+
+
 ### `ectl pull`
 
 **Purpose:** Download artifact files from the remote instance to your local machine. Paths come from `artifactPaths` in `config.json` unless overridden.
@@ -659,13 +743,15 @@ In `--follow` mode, ectl connects via SSH and streams stdout/stderr from pm2 unt
 ectl pull [options]
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--name <task>` | Task name. Default: active task. |
-| `--output <path>` | Override the local destination directory. Default: `.ectl/logs/<task-name>/` |
+
+| Option            | Description                                                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `--name <task>`   | Task name. Default: active task.                                                                                                     |
+| `--output <path>` | Override the local destination directory. Default: `.ectl/logs/<task-name>/`                                                         |
 | `--paths <paths>` | Comma-separated list of remote paths for this run only. Overrides `artifactPaths` in config. Example: `--paths output/,logs/run.log` |
-| `--json` | Machine-readable output |
-| `--verbose` | Debug logging |
+| `--json`          | Machine-readable output                                                                                                              |
+| `--verbose`       | Debug logging                                                                                                                        |
+
 
 **Requires:** At least one path — either configured in `config.json` → `artifactPaths` or passed via `--paths`. Fails with a clear message if no paths are configured.
 
@@ -687,6 +773,8 @@ ectl pull --paths "output/" --output .\results
 
 ---
 
+
+
 ### `ectl ssh`
 
 **Purpose:** Open an **interactive shell** on the task instance as `config.sshUser` (default `ubuntu`). Uses `.ectl/keys/ectl-key.pem` via `node-ssh` — no Windows OpenSSH configuration required.
@@ -697,10 +785,12 @@ ectl pull --paths "output/" --output .\results
 ectl ssh [options]
 ```
 
-| Option | Description |
-|--------|-------------|
+
+| Option          | Description                      |
+| --------------- | -------------------------------- |
 | `--name <task>` | Task name. Default: active task. |
-| `--verbose` | Debug logging |
+| `--verbose`     | Debug logging                    |
+
 
 **Note:** `--json` is **not supported** (interactive session). Exit the shell with **Ctrl+D** or type `exit`.
 
@@ -716,6 +806,8 @@ ectl ssh --verbose
 
 ---
 
+
+
 ### `ectl stop`
 
 **Purpose:** Stop the **pm2 process** on the instance without destroying the EC2 instance. Useful when you want to pause compute work but keep the machine for faster restart or inspection.
@@ -726,11 +818,13 @@ ectl ssh --verbose
 ectl stop [options]
 ```
 
-| Option | Description |
-|--------|-------------|
+
+| Option          | Description                      |
+| --------------- | -------------------------------- |
 | `--name <task>` | Task name. Default: active task. |
-| `--json` | Machine-readable output |
-| `--verbose` | Debug logging |
+| `--json`        | Machine-readable output          |
+| `--verbose`     | Debug logging                    |
+
 
 Updates task status to `stopped`. The instance keeps running (you continue paying for EC2).
 
@@ -747,6 +841,8 @@ If the process is already stopped, ectl reports that and suggests next commands.
 
 ---
 
+
+
 ### `ectl terminate`
 
 **Purpose:** Tear down AWS resources for the task — terminate the EC2 instance, wait until terminated, delete the security group, and update local state to `terminated`. **Does not** delete the SSH key pair in `.ectl/keys/` (reused on next launch).
@@ -757,11 +853,13 @@ If the process is already stopped, ectl reports that and suggests next commands.
 ectl terminate [options]
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--name <task>` | Task name. Default: active task. |
-| `--json` | Machine-readable output. **Skips the confirmation prompt** — intended for automation; use carefully. |
-| `--verbose` | Debug logging |
+
+| Option          | Description                                                                                          |
+| --------------- | ---------------------------------------------------------------------------------------------------- |
+| `--name <task>` | Task name. Default: active task.                                                                     |
+| `--json`        | Machine-readable output. **Skips the confirmation prompt** — intended for automation; use carefully. |
+| `--verbose`     | Debug logging                                                                                        |
+
 
 **Interactive confirmation:** In normal (non-JSON) mode, ectl asks you to confirm before terminating. This cannot be undone.
 
@@ -777,7 +875,11 @@ ectl terminate --json    # no prompt; for scripts only
 
 ---
 
+
+
 ## Typical workflows
+
+
 
 ### Run a Node.js batch job end-to-end
 
@@ -790,6 +892,8 @@ ectl pull --paths "output/"
 ectl terminate
 ```
 
+
+
 ### Iterate on code without relaunching the instance
 
 ```powershell
@@ -797,6 +901,8 @@ ectl push
 ectl run --run "npm install && npm test"
 ectl logs default --follow
 ```
+
+
 
 ### Debug a failed deploy
 
@@ -807,6 +913,8 @@ ectl logs default --lines 200
 ectl terminate                 # Clean up when done
 ```
 
+
+
 ### Stop work overnight, resume next day
 
 ```powershell
@@ -815,6 +923,8 @@ ectl stop
 ectl run --run "npm start"
 ectl logs default --follow
 ```
+
+
 
 ### Scripting with JSON
 
@@ -826,6 +936,8 @@ if ($result.ok -and $result.data.status -eq "running") {
 ```
 
 ---
+
+
 
 ## JSON output (scripting)
 
@@ -862,51 +974,65 @@ Decorative spinners and tables are suppressed in JSON mode. Use `--verbose` for 
 
 ---
 
+
+
 ## Security notes
 
-| Topic | Guidance |
-|-------|----------|
-| **Private keys** | Never commit `.ectl/`. Init appends `.ectl/` to `.gitignore`. Do not share `.ectl/keys/`. |
-| **SSH access** | By default, only **your current public IP** can SSH to the instance. Avoid `--allow-any-ip` unless necessary. |
-| **Secrets in uploads** | `.env` is **not** in the default `.ectlignore`. Add `.env` manually if your project contains secrets. |
-| **AWS credentials** | Stored only in the standard AWS chain — never in `.ectl/config.json`. |
-| **Terminate** | Always confirm termination in interactive mode. Use `--json` terminate only in trusted automation. |
+
+| Topic                  | Guidance                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Private keys**       | Never commit `.ectl/`. Init appends `.ectl/` to `.gitignore`. Do not share `.ectl/keys/`.                     |
+| **SSH access**         | By default, only **your current public IP** can SSH to the instance. Avoid `--allow-any-ip` unless necessary. |
+| **Secrets in uploads** | `.env` is **not** in the default `.ectlignore`. Add `.env` manually if your project contains secrets.         |
+| **AWS credentials**    | Stored only in the standard AWS chain — never in `.ectl/config.json`.                                         |
+| **Terminate**          | Always confirm termination in interactive mode. Use `--json` terminate only in trusted automation.            |
+
 
 Required AWS tags on instances and security groups: `ectl:project`, `ectl:task`, `ectl:created-at`, `ectl:created-by`.
 
 ---
 
+
+
 ## Common errors and recovery
 
-| Error code | Meaning | What to do |
-|------------|---------|------------|
-| `NOT_INITIALIZED` | No `.ectl/` in project | Run `ectl init` |
-| `ACTIVE_TASK_EXISTS` | A task is already running or provisioned | `ectl status`, then `ectl terminate` if done |
-| `NO_ACTIVE_TASK` | No task to operate on | `ectl launch` or `ectl deploy` |
-| `AWS_CREDENTIALS_INVALID` | Bad or missing AWS credentials | Fix [AWS setup](#aws-setup-and-credentials) |
-| `RUN_COMMAND_MISSING` | No `--run` and no `.ectl/run.sh` | Add one before `run` or `deploy` |
-| `ARTIFACT_PATHS_EMPTY` | Nothing to pull | Set `artifactPaths` in config or use `--paths` |
-| `SSH_CONNECTION_FAILED` | Cannot reach instance | Check security group IP, instance state, `ectl status` |
-| `DEPLOY_PARTIAL_FAILURE` | Deploy stopped mid-flow | Resources left running — `ectl ssh`, fix, retry `run`, or `ectl terminate` |
-| `INSTANCE_NO_PUBLIC_IP` | Instance has no public IPv4 | Check default VPC / subnet settings |
+
+| Error code                | Meaning                                  | What to do                                                                 |
+| ------------------------- | ---------------------------------------- | -------------------------------------------------------------------------- |
+| `NOT_INITIALIZED`         | No `.ectl/` in project                   | Run `ectl init`                                                            |
+| `ACTIVE_TASK_EXISTS`      | A task is already running or provisioned | `ectl status`, then `ectl terminate` if done                               |
+| `NO_ACTIVE_TASK`          | No task to operate on                    | `ectl launch` or `ectl deploy`                                             |
+| `AWS_CREDENTIALS_INVALID` | Bad or missing AWS credentials           | Fix [AWS setup](#aws-setup-and-credentials)                                |
+| `RUN_COMMAND_MISSING`     | No `--run` and no `.ectl/run.sh`         | Add one before `run` or `deploy`                                           |
+| `ARTIFACT_PATHS_EMPTY`    | Nothing to pull                          | Set `artifactPaths` in config or use `--paths`                             |
+| `SSH_CONNECTION_FAILED`   | Cannot reach instance                    | Check security group IP, instance state, `ectl status`                     |
+| `DEPLOY_PARTIAL_FAILURE`  | Deploy stopped mid-flow                  | Resources left running — `ectl ssh`, fix, retry `run`, or `ectl terminate` |
+| `INSTANCE_NO_PUBLIC_IP`   | Instance has no public IPv4              | Check default VPC / subnet settings                                        |
+
 
 Every error message includes a suggested next command where possible.
 
 ---
 
+
+
 ## Development scripts
 
 For contributors working on the ectl source code:
 
-| Script | Description |
-|--------|-------------|
-| `npm run build` | Compile TypeScript to `dist/` |
-| `npm run dev` | Run CLI via `tsx` without building |
-| `npm run start` | Run compiled CLI (`node dist/index.js`) |
-| `npm run typecheck` | Typecheck without emit |
-| `npm test` | Run vitest unit tests |
+
+| Script              | Description                             |
+| ------------------- | --------------------------------------- |
+| `npm run build`     | Compile TypeScript to `dist/`           |
+| `npm run dev`       | Run CLI via `tsx` without building      |
+| `npm run start`     | Run compiled CLI (`node dist/index.js`) |
+| `npm run typecheck` | Typecheck without emit                  |
+| `npm test`          | Run vitest unit tests                   |
+
 
 ---
+
+
 
 ## Further documentation
 
@@ -915,6 +1041,8 @@ For contributors working on the ectl source code:
 - [Contributing](CONTRIBUTING.md)
 
 ---
+
+
 
 ## License
 
