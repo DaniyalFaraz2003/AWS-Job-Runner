@@ -14,12 +14,16 @@ export function buildPm2StartCommand(
 ): string {
   const workDir = shellQuote(remoteWorkDir);
   const name = shellQuote(processName);
-  const cmd = shellQuote(command);
+  // PM2 expects the executable as a quoted script argument (see pm2 docs:
+  // `pm2 start "npm run start"`, `pm2 start "bash -c '...'"`). Using
+  // `-- bash -c` leaves PM2 without a script and it falls back to
+  // ecosystem.config.js, which batch projects do not have.
+  const script = shellQuote(`bash -c ${shellQuote(command)}`);
 
   return [
     `cd ${workDir}`,
     `pm2 delete ${name} 2>/dev/null || true`,
-    `pm2 start --name ${name} --interpreter bash -- -lc ${cmd}`,
+    `pm2 start ${script} --name ${name} --no-autorestart`,
   ].join(" && ");
 }
 
