@@ -61,3 +61,19 @@ export function getStatePath(projectRoot: string, taskName: string): string {
 export function getRunPath(projectRoot: string, taskName: string): string {
   return join(getTaskDir(projectRoot, taskName), "run.json");
 }
+
+export function getKeysDir(projectRoot: string): string {
+  return join(getEctlDir(projectRoot), "keys");
+}
+
+export function getPrivateKeyPath(projectRoot: string): string {
+  return join(getKeysDir(projectRoot), "ectl-key.pem");
+}
+
+export function getLogsDir(projectRoot: string): string {
+  return join(getEctlDir(projectRoot), "logs");
+}
+
+export function ectlDirExists(projectRoot: string): boolean {
+  return existsSync(getEctlDir(projectRoot));
+}

@@ -1,6 +1,6 @@
 import type { EC2Client, Tag } from "@aws-sdk/client-ec2";
 import type { EctlConfig } from "../types/config.js";
-import { AmiResolver } from "./ami-resolver.js";
+import { AmiResolver, type UbuntuAmiCandidate } from "./ami-resolver.js";
 import { CallerIpDetector } from "./caller-ip-detector.js";
 import { createEc2Client } from "./client.js";
 import { validateAwsCredentials } from "./credentials.js";
@@ -56,7 +56,7 @@ export class AwsProvisioner {
   ) {
     this.region = region;
     this.client = deps.client ?? createEc2Client({ region });
-    this.amiResolver = new AmiResolver(this.client);
+    this.amiResolver = new AmiResolver(this.client, region);
     this.keyPairs = new KeyPairService(this.client);
     this.securityGroups = new SecurityGroupService(this.client);
     this.instances = new InstanceLifecycle(this.client);
@@ -67,8 +67,22 @@ export class AwsProvisioner {
     await validateAwsCredentials(this.client);
   }
 
+  async listUbuntuAmis(): Promise<UbuntuAmiCandidate[]> {
+    return this.amiResolver.listUbuntuAmis();
+  }
+
+  /** @deprecated Use {@link listUbuntuAmis}. */
+  async listUbuntu2204Amis(): Promise<UbuntuAmiCandidate[]> {
+    return this.listUbuntuAmis();
+  }
+
+  async resolveDefaultUbuntuAmiId(): Promise<string> {
+    return this.amiResolver.resolveDefaultUbuntuAmiId();
+  }
+
+  /** @deprecated Use {@link resolveDefaultUbuntuAmiId}. */
   async resolveUbuntu2204AmiId(): Promise<string> {
-    return this.amiResolver.resolveUbuntu2204AmiId();
+    return this.resolveDefaultUbuntuAmiId();
   }
 
   async createKeyPair(keyPairName: string): Promise<CreateKeyPairResult> {
