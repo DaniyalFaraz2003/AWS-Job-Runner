@@ -23,6 +23,7 @@ import { buildEctlTags } from "./tag-builder.js";
 export interface AwsProvisionerDeps {
   readonly client?: EC2Client;
   readonly callerIpDetector?: CallerIpDetector;
+  readonly onVerbose?: (message: string) => void;
 }
 
 export interface LaunchTaskResourcesInput {
@@ -56,7 +57,12 @@ export class AwsProvisioner {
     deps: AwsProvisionerDeps = {},
   ) {
     this.region = region;
-    this.client = deps.client ?? createEc2Client({ region });
+    this.client =
+      deps.client ??
+      createEc2Client({
+        region,
+        ...(deps.onVerbose !== undefined ? { onVerbose: deps.onVerbose } : {}),
+      });
     this.amiResolver = new AmiResolver(this.client, region);
     this.keyPairs = new KeyPairService(this.client);
     this.securityGroups = new SecurityGroupService(this.client);

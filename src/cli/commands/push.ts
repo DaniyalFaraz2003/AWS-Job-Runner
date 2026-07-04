@@ -9,11 +9,10 @@ import {
 } from "../../orchestration/task-pusher.js";
 import {
   createSuccessEnvelope,
-  envelopeFromError,
   printJson,
 } from "../output/envelope.js";
+import { handleCommandError } from "../output/command-error.js";
 import { StepProgressReporter } from "../output/step-progress.js";
-import { isEctlError } from "../../types/errors.js";
 
 export interface PushCommandOptions {
   readonly name?: string;
@@ -120,15 +119,7 @@ export function registerPushCommand(
       try {
         await runPushCommand(local, ctx);
       } catch (error) {
-        if (ctx.json) {
-          printJson(envelopeFromError("push", error));
-        } else if (isEctlError(error)) {
-          console.error(chalk.red(error.message));
-        } else {
-          const message = error instanceof Error ? error.message : String(error);
-          console.error(chalk.red(message));
-        }
-        process.exit(1);
+        handleCommandError(ctx, "push", error);
       }
     });
 }

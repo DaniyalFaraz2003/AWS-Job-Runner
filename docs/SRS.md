@@ -42,8 +42,8 @@ This document specifies the software requirements for **ectl**, a command-line t
 ### 1.2 Intended Audience
 
 - Developers who run batch or long-running Node.js (or shell-based) jobs on EC2
-- Internal tooling maintainers who package and distribute `ectl` via a private npm registry
-- Future open-source contributors (post-internal release)
+- Open-source contributors and maintainers who package and distribute `ectl` via npm
+- Anyone self-hosting or extending the CLI for their AWS workflows
 
 ### 1.3 Problem Statement
 
@@ -85,7 +85,7 @@ The tool does **not** require the AWS CLI to be installed. AWS credentials are r
 |------|-------------|
 | **Task operator** | Runs `ectl deploy`, monitors with `ectl logs`, retrieves output with `ectl pull`, cleans up with `ectl terminate` |
 | **Project maintainer** | Configures `.ectl/config.json`, `.ectlignore`, optional `.ectl/run.sh`, and artifact pull paths |
-| **Tool maintainer** | Publishes `ectl` to internal npm, manages versioning |
+| **Tool maintainer** | Publishes `ectl` to npm, manages versioning, triages issues and PRs |
 
 ### 2.3 Operating Environment
 
@@ -101,7 +101,7 @@ The tool does **not** require the AWS CLI to be installed. AWS credentials are r
 - **One active task per project directory** — only one EC2 task may be running (or provisioned) at a time per initialized project
 - **One instance per task** — each task maps 1:1 to a dedicated EC2 instance
 - **Default VPC only in v1** — instances launch in the account default VPC with auto-assigned public IP
-- **Internal distribution first** — private npm registry; open-source release planned later
+- **Open-source distribution** — published on npm under the MIT license; source on GitHub
 - **Minimal automated testing in v1** — manual verification acceptable; unit tests with mocks are encouraged but not gate release
 
 ### 2.5 Assumptions
@@ -627,25 +627,34 @@ Per locked decision: **minimal testing bar for v1**.
 
 | Item | Specification |
 |------|---------------|
-| **Package name** | `@<org>/ectl` or `ectl` (scoped per org policy) |
+| **Package name** | `ectl` on [npm](https://www.npmjs.com/) |
 | **Binary** | `ectl` via `package.json` → `bin` field |
-| **Registry** | Private npm registry (internal) |
+| **Registry** | Public npm registry |
+| **License** | MIT |
 | **Node engines** | `>=22` |
-| **Build** | TypeScript → `dist/`; publish `files: ["dist", "README"]` |
+| **Build** | TypeScript → `dist/`; publish `files: ["dist", "README.md", "LICENSE"]` |
 | **Versioning** | SemVer |
-| **Open source** | Planned after internal stabilization; license TBD |
+| **Source** | [GitHub — AWS-Job-Runner](https://github.com/DaniyalFaraz2003/AWS-Job-Runner) |
 
-### 12.1 Installation (Internal)
+### 12.1 Installation
 
 ```powershell
-npm install -g @your-org/ectl
+npm install -g ectl
 ```
 
 Or per-project:
 
 ```powershell
-npm install --save-dev @your-org/ectl
+npm install --save-dev ectl
 npx ectl init
+```
+
+From source:
+
+```powershell
+git clone https://github.com/DaniyalFaraz2003/AWS-Job-Runner.git
+cd AWS-Job-Runner
+npm install && npm run build
 ```
 
 ---
@@ -691,7 +700,7 @@ npx ectl init
 6. `ectl status --dry-run` and `ectl deploy --dry-run`
 7. IAM policy template for least-privilege deployments
 8. Standalone binary via `pkg` / Node SEA
-9. Open-source release with contribution guidelines
+9. Open-source contribution guidelines (`CONTRIBUTING.md`)
 10. Auto-prompt to add `.env` to `.ectlignore` during init
 11. Shared instances across tasks
 12. Custom AMI with pre-installed Node/pm2
@@ -705,8 +714,8 @@ Decisions captured from stakeholder questionnaire (2026-07-03):
 | Topic | Decision |
 |-------|----------|
 | CLI name | `ectl` |
-| Distribution | Private npm registry |
-| License / audience | Internal first; open source later |
+| Distribution | Public npm + GitHub (MIT) |
+| License / audience | Open source worldwide |
 | v1 platform | Windows (PowerShell) only |
 | CLI framework | Commander.js |
 | Tasks per project | Single active task at a time |
@@ -741,7 +750,7 @@ Decisions captured from stakeholder questionnaire (2026-07-03):
 
 ```powershell
 cd C:\Projects\my-batch-job
-npm install -g @your-org/ectl
+npm install -g ectl
 
 ectl init
 # Wizard: region us-east-1, instance type t3.medium

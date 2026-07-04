@@ -9,9 +9,9 @@ import {
 } from "../../orchestration/task-logs.js";
 import {
   createSuccessEnvelope,
-  envelopeFromError,
   printJson,
 } from "../output/envelope.js";
+import { handleCommandError } from "../output/command-error.js";
 import { isEctlError, ECTL_ERROR_CODES, EctlError } from "../../types/errors.js";
 
 export interface LogsCommandOptions {
@@ -149,15 +149,7 @@ export function registerLogsCommand(
       try {
         await runLogsCommand(task, local, ctx);
       } catch (error) {
-        if (ctx.json) {
-          printJson(envelopeFromError("logs", error));
-        } else if (isEctlError(error)) {
-          console.error(chalk.red(error.message));
-        } else {
-          const message = error instanceof Error ? error.message : String(error);
-          console.error(chalk.red(message));
-        }
-        process.exit(1);
+        handleCommandError(ctx, "logs", error);
       }
     });
 }

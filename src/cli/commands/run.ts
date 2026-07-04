@@ -9,11 +9,10 @@ import {
 } from "../../orchestration/task-runner.js";
 import {
   createSuccessEnvelope,
-  envelopeFromError,
   printJson,
 } from "../output/envelope.js";
+import { handleCommandError } from "../output/command-error.js";
 import { StepProgressReporter } from "../output/step-progress.js";
-import { isEctlError } from "../../types/errors.js";
 
 export interface RunCommandOptions {
   readonly name?: string;
@@ -135,15 +134,7 @@ export function registerRunCommand(
       try {
         await runRunCommand(local, ctx);
       } catch (error) {
-        if (ctx.json) {
-          printJson(envelopeFromError("run", error));
-        } else if (isEctlError(error)) {
-          console.error(chalk.red(error.message));
-        } else {
-          const message = error instanceof Error ? error.message : String(error);
-          console.error(chalk.red(message));
-        }
-        process.exit(1);
+        handleCommandError(ctx, "run", error);
       }
     });
 }

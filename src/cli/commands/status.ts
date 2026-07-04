@@ -5,16 +5,15 @@ import ora from "ora";
 import type { CliContext } from "../context.js";
 import { logVerbose } from "../context.js";
 import {
-  createTaskStatusChecker,
   isNoActiveTaskResult,
   type TaskStatusSnapshot,
 } from "../../orchestration/task-status.js";
 import {
   createSuccessEnvelope,
-  envelopeFromError,
   printJson,
 } from "../output/envelope.js";
-import { isEctlError } from "../../types/errors.js";
+import { handleCommandError } from "../output/command-error.js";
+import { createStatusCheckerForContext } from "../service-deps.js";
 import type { TaskStatus } from "../../types/state.js";
 
 export interface StatusCommandOptions {
@@ -131,7 +130,7 @@ export async function runStatusCommand(
     `Checking task status${options.name !== undefined ? ` for '${options.name}'` : ""}`,
   );
 
-  const checker = createTaskStatusChecker();
+  const checker = createStatusCheckerForContext(ctx);
   const spinner =
     ctx.json === false ? ora("Reconciling with AWS…").start() : null;
 
@@ -182,15 +181,7 @@ export function registerStatusCommand(
       try {
         await runStatusCommand(local, ctx);
       } catch (error) {
-        if (ctx.json) {
-          printJson(envelopeFromError("status", error));
-        } else if (isEctlError(error)) {
-          console.error(chalk.red(error.message));
-        } else {
-          const message = error instanceof Error ? error.message : String(error);
-          console.error(chalk.red(message));
-        }
-        process.exit(1);
+        handleCommandError(ctx, "status", error);
       }
     });
 }

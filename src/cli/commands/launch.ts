@@ -4,18 +4,17 @@ import chalk from "chalk";
 import type { CliContext } from "../context.js";
 import { logVerbose } from "../context.js";
 import {
-  createTaskLauncher,
   type LaunchProgress,
   type LaunchTaskResult,
 } from "../../orchestration/task-launcher.js";
 import { resolveTaskName } from "../../state/task-name.js";
 import {
   createSuccessEnvelope,
-  envelopeFromError,
   printJson,
 } from "../output/envelope.js";
+import { handleCommandError } from "../output/command-error.js";
+import { createLauncherForContext } from "../service-deps.js";
 import { StepProgressReporter } from "../output/step-progress.js";
-import { isEctlError } from "../../types/errors.js";
 
 export interface LaunchCommandOptions {
   readonly name?: string;
@@ -101,7 +100,7 @@ export async function runLaunchCommand(
 
   logVerbose(ctx, `Launching task '${taskName}' (allowAnyIp=${String(allowAnyIp)})`);
 
-  const launcher = createTaskLauncher();
+  const launcher = createLauncherForContext(ctx);
   const reporter = ctx.json ? null : new StepProgressReporter();
 
   if (reporter !== null) {
@@ -154,15 +153,7 @@ export function registerLaunchCommand(
       try {
         await runLaunchCommand(local, ctx);
       } catch (error) {
-        if (ctx.json) {
-          printJson(envelopeFromError("launch", error));
-        } else if (isEctlError(error)) {
-          console.error(chalk.red(error.message));
-        } else {
-          const message = error instanceof Error ? error.message : String(error);
-          console.error(chalk.red(message));
-        }
-        process.exit(1);
+        handleCommandError(ctx, "launch", error);
       }
     });
 }
