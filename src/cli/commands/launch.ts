@@ -1,11 +1,11 @@
 import type { Command } from "commander";
 import { confirm } from "@inquirer/prompts";
 import chalk from "chalk";
-import ora from "ora";
 import type { CliContext } from "../context.js";
 import { logVerbose } from "../context.js";
 import {
   createTaskLauncher,
+  type LaunchProgress,
   type LaunchTaskResult,
 } from "../../orchestration/task-launcher.js";
 import { resolveTaskName } from "../../state/task-name.js";
@@ -14,6 +14,7 @@ import {
   envelopeFromError,
   printJson,
 } from "../output/envelope.js";
+import { StepProgressReporter } from "../output/step-progress.js";
 import { isEctlError } from "../../types/errors.js";
 
 export interface LaunchCommandOptions {
@@ -51,15 +52,37 @@ async function confirmAllowAnyIp(ctx: CliContext): Promise<boolean> {
   });
 }
 
+function createLaunchProgress(reporter: StepProgressReporter): LaunchProgress {
+  return {
+    beginStep(label: string) {
+      reporter.beginStep(label);
+    },
+    updateStep(label: string) {
+      reporter.updateStep(label);
+    },
+    completeStep(detail?: string) {
+      reporter.completeStep(detail);
+    },
+    failStep(message?: string) {
+      reporter.failStep(message);
+    },
+  };
+}
+
 function printLaunchSuccess(result: LaunchTaskResult): void {
   const { taskName, state } = result;
-  console.log(chalk.green(`Task '${taskName}' launched successfully.`));
-  console.log(`  Instance:  ${state.instanceId}`);
-  console.log(`  Public IP: ${state.publicIp}`);
-  console.log(`  Status:    ${state.status}`);
+  console.log("");
+  console.log(chalk.green.bold(`Task '${taskName}' is ready.`));
+  console.log(chalk.dim("─".repeat(48)));
+  console.log(`  ${chalk.dim("Instance")}      ${state.instanceId}`);
+  console.log(`  ${chalk.dim("Public IP")}     ${state.publicIp}`);
+  console.log(`  ${chalk.dim("Security grp")}  ${state.securityGroupId}`);
+  console.log(`  ${chalk.dim("Status")}        ${chalk.green(state.status)}`);
+  console.log(chalk.dim("─".repeat(48)));
   console.log(
-    chalk.dim("\nNext: `ectl push` to upload your project, then `ectl run`."),
+    chalk.dim("Next: `ectl push` to upload your project, then `ectl run`."),
   );
+  console.log("");
 }
 
 export async function runLaunchCommand(
@@ -79,10 +102,13 @@ export async function runLaunchCommand(
   logVerbose(ctx, `Launching task '${taskName}' (allowAnyIp=${String(allowAnyIp)})`);
 
   const launcher = createTaskLauncher();
-  let spinner: ReturnType<typeof ora> | undefined;
+  const reporter = ctx.json ? null : new StepProgressReporter();
 
-  if (!ctx.json) {
-    spinner = ora("Launching EC2 instance…").start();
+  if (reporter !== null) {
+    reporter.printHeader(
+      `ectl launch — task ${chalk.cyan(`'${taskName}'`)}`,
+      "Provisioning EC2 resources. Status checks may take several minutes.",
+    );
   }
 
   try {
@@ -91,18 +117,8 @@ export async function runLaunchCommand(
         taskName,
         allowAnyIp,
       },
-      spinner
-        ? {
-            update(message: string) {
-              spinner!.text = message;
-            },
-          }
-        : undefined,
+      reporter ? createLaunchProgress(reporter) : undefined,
     );
-
-    if (spinner !== undefined) {
-      spinner.succeed(`Task '${taskName}' is running`);
-    }
 
     if (ctx.json) {
       printJson(createSuccessEnvelope("launch", result));
@@ -111,9 +127,7 @@ export async function runLaunchCommand(
 
     printLaunchSuccess(result);
   } catch (error) {
-    if (spinner !== undefined) {
-      spinner.fail("Launch failed");
-    }
+    reporter?.stop();
     throw error;
   }
 }

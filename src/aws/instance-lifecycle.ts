@@ -11,8 +11,11 @@ import {
   type _InstanceType,
 } from "@aws-sdk/client-ec2";
 import { ECTL_ERROR_CODES, EctlError } from "../types/errors.js";
+import { formatElapsedMs } from "../util/format-elapsed.js";
 import { findDefaultVpcContext } from "./default-vpc.js";
 import { wrapAwsError } from "./map-aws-error.js";
+
+const STATUS_CHECK_HEARTBEAT_MS = 10_000;
 
 export interface LaunchInstanceInput {
   readonly amiId: string;
@@ -20,6 +23,7 @@ export interface LaunchInstanceInput {
   readonly keyPairName: string;
   readonly securityGroupId: string;
   readonly tags: readonly Tag[];
+  readonly onProgress?: (message: string) => void;
 }
 
 export interface LaunchedInstance {
@@ -74,10 +78,27 @@ export class InstanceLifecycle {
         throw new Error("RunInstances did not return an instance ID.");
       }
 
-      await waitUntilInstanceStatusOk(
-        { client: this.client, maxWaitTime: DEFAULT_INSTANCE_WAIT_SECONDS },
-        { InstanceIds: [instanceId] },
+      input.onProgress?.(
+        `Instance ${instanceId} created — waiting for status checks…`,
       );
+
+      const waitStartedAt = Date.now();
+      const heartbeat = setInterval(() => {
+        input.onProgress?.(
+          `Waiting for instance status checks (${formatElapsedMs(Date.now() - waitStartedAt)})…`,
+        );
+      }, STATUS_CHECK_HEARTBEAT_MS);
+
+      try {
+        await waitUntilInstanceStatusOk(
+          { client: this.client, maxWaitTime: DEFAULT_INSTANCE_WAIT_SECONDS },
+          { InstanceIds: [instanceId] },
+        );
+      } finally {
+        clearInterval(heartbeat);
+      }
+
+      input.onProgress?.("Instance status checks passed");
 
       const described = await this.describeInstance(instanceId);
       if (described.publicIp.length === 0) {

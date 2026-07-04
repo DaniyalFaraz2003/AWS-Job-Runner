@@ -33,6 +33,7 @@ export interface LaunchTaskResourcesInput {
   readonly callerIp?: string;
   readonly createdAt?: string;
   readonly createdBy?: string;
+  readonly onProgress?: (message: string) => void;
 }
 
 export interface LaunchTaskResourcesResult {
@@ -137,12 +138,23 @@ export class AwsProvisioner {
       ...(input.createdBy !== undefined ? { createdBy: input.createdBy } : {}),
     });
 
+    input.onProgress?.("Locating default VPC and subnet…");
     const { vpcId } = await findDefaultVpcContext(this.client);
+
+    if (input.allowAnyIp ?? false) {
+      input.onProgress?.("Configuring SSH access for 0.0.0.0/0…");
+    } else {
+      input.onProgress?.("Detecting your public IP for SSH access…");
+    }
+
     const sshCidr = await this.resolveSshCidr({
       allowAnyIp: input.allowAnyIp ?? false,
       ...(input.callerIp !== undefined ? { callerIp: input.callerIp } : {}),
     });
 
+    input.onProgress?.(
+      `Creating security group (SSH ${sshCidr} on port 22)…`,
+    );
     const securityGroup = await this.securityGroups.createTaskSecurityGroup({
       projectSlug: input.config.projectSlug,
       taskName: input.taskName,
@@ -151,13 +163,21 @@ export class AwsProvisioner {
       tags,
     });
 
+    input.onProgress?.(
+      `Launching EC2 instance (${input.config.instanceType}, ${input.amiId})…`,
+    );
     const instance = await this.instances.launchInstance({
       amiId: input.amiId,
       instanceType: input.config.instanceType,
       keyPairName: input.config.keyPairName,
       securityGroupId: securityGroup.securityGroupId,
       tags,
+      ...(input.onProgress !== undefined
+        ? { onProgress: input.onProgress }
+        : {}),
     });
+
+    input.onProgress?.(`Public IP assigned: ${instance.publicIp}`);
 
     return { instance, securityGroup, tags };
   }

@@ -146,6 +146,9 @@ describe("TaskLauncher", () => {
       "203.0.113.10",
       join(root, ".ectl", "keys", "ectl-key.pem"),
       "ubuntu",
+      expect.objectContaining({
+        onRetry: expect.any(Function),
+      }),
     );
     expect(ssh.dispose).toHaveBeenCalled();
 

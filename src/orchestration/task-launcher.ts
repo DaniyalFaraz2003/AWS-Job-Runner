@@ -28,7 +28,10 @@ export interface LaunchTaskResult {
 }
 
 export interface LaunchProgress {
-  update(message: string): void;
+  beginStep(label: string): void;
+  updateStep(label: string): void;
+  completeStep(detail?: string): void;
+  failStep?(message?: string): void;
 }
 
 export interface TaskLauncherDeps {
@@ -64,14 +67,24 @@ export class TaskLauncher {
     const taskName = resolveTaskName(input.taskName);
     const allowAnyIp = input.allowAnyIp ?? false;
 
+    progress?.beginStep("Reading project configuration");
     const configManager = this.createConfigManagerFn(projectRoot);
     const stateStore = this.createStateStoreFn(projectRoot);
     const config = await configManager.read();
+    progress?.completeStep(`${config.region} · ${config.instanceType}`);
 
-    await stateStore.assertNoActiveTask();
+    progress?.beginStep("Checking for active tasks");
+    try {
+      await stateStore.assertNoActiveTask();
+    } catch (error) {
+      progress?.failStep?.("another task is still active");
+      throw error;
+    }
+    progress?.completeStep("none active");
 
     const keyPath = getPrivateKeyPath(projectRoot);
     if (!existsSync(keyPath)) {
+      progress?.failStep?.("Private key missing");
       throw new EctlError(
         ECTL_ERROR_CODES.NOT_INITIALIZED,
         `Private key not found at ${keyPath}. Run \`ectl init\` first.`,
@@ -90,13 +103,19 @@ export class TaskLauncher {
       updatedAt: createdAt,
     });
 
-    progress?.update("Creating task state…");
+    progress?.beginStep("Preparing local task state");
     await stateStore.writeState(taskName, provisioningState);
+    progress?.completeStep(`task '${taskName}'`);
 
     const provisioner = this.createAwsProvisionerFn(config);
-    const amiId = await resolveAmiId(config, provisioner);
+    let amiId = config.amiId;
+    if (amiId === undefined || amiId.length === 0) {
+      progress?.beginStep("Resolving Ubuntu AMI");
+      amiId = await resolveAmiId(config, provisioner);
+      progress?.completeStep(amiId);
+    }
 
-    progress?.update("Provisioning EC2 instance and security group…");
+    progress?.beginStep("Provisioning AWS resources");
     let resources: LaunchTaskResourcesResult;
     try {
       resources = await provisioner.launchTaskResources({
@@ -105,8 +124,12 @@ export class TaskLauncher {
         amiId,
         allowAnyIp,
         createdAt,
+        onProgress: (message) => {
+          progress?.updateStep(message);
+        },
       });
     } catch (error) {
+      progress?.failStep?.("AWS provisioning failed");
       await stateStore.writeState(
         taskName,
         buildTaskState({
@@ -122,6 +145,9 @@ export class TaskLauncher {
       );
       throw error;
     }
+    progress?.completeStep(
+      `${resources.instance.instanceId} · ${resources.instance.publicIp}`,
+    );
 
     const withInstanceState = buildTaskState({
       taskName,
@@ -133,17 +159,31 @@ export class TaskLauncher {
       createdAt,
       updatedAt: this.now().toISOString(),
     });
-    await stateStore.writeState(taskName, withInstanceState);
 
-    progress?.update("Waiting for SSH…");
+    progress?.beginStep("Saving instance details to task state");
+    await stateStore.writeState(taskName, withInstanceState);
+    progress?.completeStep(resources.securityGroup.securityGroupId);
+
+    progress?.beginStep(
+      `Verifying SSH to ${config.sshUser}@${resources.instance.publicIp}`,
+    );
     const ssh = this.createSshManagerFn();
     try {
       await ssh.connect(
         resources.instance.publicIp,
         keyPath,
         config.sshUser,
+        {
+          onRetry: ({ attempt, maxAttempts, delayMs }) => {
+            const delaySeconds = Math.ceil(delayMs / 1000);
+            progress?.updateStep(
+              `Verifying SSH (${attempt}/${String(maxAttempts)} failed, retry in ${String(delaySeconds)}s)…`,
+            );
+          },
+        },
       );
     } catch (error) {
+      progress?.failStep?.("SSH verification failed");
       await stateStore.writeState(
         taskName,
         buildTaskState({
@@ -161,6 +201,7 @@ export class TaskLauncher {
     } finally {
       ssh.dispose();
     }
+    progress?.completeStep("connected");
 
     const runningState = buildTaskState({
       taskName,
@@ -172,7 +213,10 @@ export class TaskLauncher {
       createdAt,
       updatedAt: this.now().toISOString(),
     });
+
+    progress?.beginStep("Finalizing task status");
     await stateStore.writeState(taskName, runningState);
+    progress?.completeStep("running");
 
     return { taskName, state: runningState };
   }
