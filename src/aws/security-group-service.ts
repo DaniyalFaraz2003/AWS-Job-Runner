@@ -2,6 +2,7 @@ import {
   AuthorizeSecurityGroupIngressCommand,
   CreateSecurityGroupCommand,
   DeleteSecurityGroupCommand,
+  DescribeSecurityGroupsCommand,
   type EC2Client,
   type Tag,
 } from "@aws-sdk/client-ec2";
@@ -82,6 +83,27 @@ export class SecurityGroupService {
     }
   }
 
+  async securityGroupExists(securityGroupId: string): Promise<boolean> {
+    if (securityGroupId.length === 0) {
+      return false;
+    }
+
+    try {
+      const response = await this.client.send(
+        new DescribeSecurityGroupsCommand({ GroupIds: [securityGroupId] }),
+      );
+      return (response.SecurityGroups?.length ?? 0) > 0;
+    } catch (error) {
+      if (isMissingSecurityGroupError(error)) {
+        return false;
+      }
+      throw wrapAwsError(
+        error,
+        `Failed to describe security group '${securityGroupId}'`,
+      );
+    }
+  }
+
   async deleteSecurityGroup(securityGroupId: string): Promise<void> {
     try {
       await this.client.send(
@@ -112,4 +134,13 @@ export class SecurityGroupService {
 
     return `${options.callerIp}/32`;
   }
+}
+
+function isMissingSecurityGroupError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    "name" in error &&
+    (error.name === "InvalidGroup.NotFound" ||
+      error.name === "InvalidGroupId.Malformed")
+  );
 }
