@@ -41,7 +41,14 @@ export class SshManager {
     host: string,
     keyPath: string,
     user: string,
-    options: { port?: number } = {},
+    options: {
+      port?: number;
+      onRetry?: (info: {
+        attempt: number;
+        maxAttempts: number;
+        delayMs: number;
+      }) => void;
+    } = {},
   ): Promise<void> {
     this.dispose();
 
@@ -77,6 +84,11 @@ export class SshManager {
         }
 
         const delayMs = computeRetryDelayMs(attempt, this.retryPolicy);
+        options.onRetry?.({
+          attempt,
+          maxAttempts: this.retryPolicy.maxAttempts,
+          delayMs,
+        });
         await this.sleepFn(delayMs);
       }
     }
