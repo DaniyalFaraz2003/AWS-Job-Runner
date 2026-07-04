@@ -210,6 +210,23 @@ export class InstanceLifecycle {
   }
 
   async describeInstance(instanceId: string): Promise<DescribeInstanceResult> {
+    const described = await this.tryDescribeInstance(instanceId);
+    if (described === null) {
+      throw new EctlError(
+        ECTL_ERROR_CODES.CONFIG_INVALID,
+        `Instance '${instanceId}' was not found in AWS.`,
+      );
+    }
+
+    return described;
+  }
+
+  /** Returns null when the instance ID is unknown or no longer exists in AWS. */
+  async tryDescribeInstance(instanceId: string): Promise<DescribeInstanceResult | null> {
+    if (instanceId.length === 0) {
+      return null;
+    }
+
     try {
       const response = await this.client.send(
         new DescribeInstancesCommand({ InstanceIds: [instanceId] }),
@@ -217,14 +234,14 @@ export class InstanceLifecycle {
 
       const instance = response.Reservations?.[0]?.Instances?.[0];
       if (instance?.InstanceId === undefined) {
-        throw new EctlError(
-          ECTL_ERROR_CODES.CONFIG_INVALID,
-          `Instance '${instanceId}' was not found in AWS.`,
-        );
+        return null;
       }
 
       return mapDescribeInstance(instance);
     } catch (error) {
+      if (isInvalidInstanceIdError(error)) {
+        return null;
+      }
       if (error instanceof EctlError) {
         throw error;
       }
@@ -269,6 +286,14 @@ export class InstanceLifecycle {
       throw wrapAwsError(error, "Failed to tag AWS resources");
     }
   }
+}
+
+function isInvalidInstanceIdError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    "name" in error &&
+    error.name === "InvalidInstanceID.NotFound"
+  );
 }
 
 function mapDescribeInstance(instance: Instance): DescribeInstanceResult {

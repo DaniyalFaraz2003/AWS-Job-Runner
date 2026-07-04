@@ -22,3 +22,15 @@ export {
   type RunTaskResult,
   type TaskRunnerDeps,
 } from "./task-runner.js";
+export {
+  createTaskStatusChecker,
+  isNoActiveTaskResult,
+  syncStateFromAwsInstance,
+  TaskStatusChecker,
+  type NoActiveTaskSnapshot,
+  type StatusReconciliation,
+  type StatusTaskInput,
+  type StatusTaskResult,
+  type TaskStatusCheckerDeps,
+  type TaskStatusSnapshot,
+} from "./task-status.js";

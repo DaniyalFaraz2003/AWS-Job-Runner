@@ -186,6 +186,14 @@ export class AwsProvisioner {
     return this.instances.describeInstance(instanceId);
   }
 
+  async tryDescribeInstance(instanceId: string): Promise<DescribeInstanceResult | null> {
+    return this.instances.tryDescribeInstance(instanceId);
+  }
+
+  async securityGroupExists(securityGroupId: string): Promise<boolean> {
+    return this.securityGroups.securityGroupExists(securityGroupId);
+  }
+
   async terminateInstance(instanceId: string): Promise<void> {
     await this.instances.terminateInstance(instanceId);
   }
