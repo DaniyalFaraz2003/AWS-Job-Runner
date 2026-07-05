@@ -1,6 +1,6 @@
 # AWS Job Runner - ectl
 
-**ectl** is a project-local command-line tool that runs long-lived jobs on Amazon EC2. Think of it like **git for cloud tasks**: run `ectl init` once in your project folder, and everything ectl needs — configuration, SSH keys, instance state, and downloaded logs — lives in a `.ectl/` directory beside your code. Nothing is stored in a global config directory.
+**ectl** is a project-local command-line tool that runs long-lived jobs on Amazon EC2. Think of it like **git for cloud tasks**: run `ectl init` once in your project folder, and everything ectl needs — configuration, SSH keys, instance state, and downloaded output — lives in a `.ectl/` directory beside your code. Nothing is stored in a global config directory.
 
 Instead of manually clicking through the AWS Console (launch instance → upload files → install dependencies → start your process → download results → terminate), ectl automates the full lifecycle with a handful of commands.
 
